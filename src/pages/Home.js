@@ -5,6 +5,8 @@ import axios from 'axios';
 const Home = () => {
   const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
 
+  const openaiApiKey = process.env.REACT_APP_OPENAI_API_KEY;
+
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [chats, setChats] = useState([
@@ -41,11 +43,10 @@ const Home = () => {
     { text: `Create a personal webapge for me`, description: `after asking me three questions` },
     { text: `Suggest fun activities`, description: `for a family of 4 to do indoors` },
   ];
-
+  
   const handleStartNewChat = () => {
     setMessage('');
     setMessages([]);
-    // Optionally, reset the suggestions or keep them as is
   };
 
   const handleSubmit = async (e) => {
@@ -55,15 +56,32 @@ const Home = () => {
 
   const handleStartChat = async (newMessage) => {
     if (!newMessage.trim()) return; // Check if the message is empty or only whitespace
-    
+
     const newMessages = [...messages, { text: newMessage, sender: 'user' }];
     setMessages(newMessages);
     setMessage('');
 
-    // Simulate API response
-  //  const response = await axios.post('/api/chat', { message: message });
-    const replyMessage = 'hahaha';
-    setMessages([...newMessages, { text: replyMessage, sender: 'bot' }]);
+    try {
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-3.5-turbo', // Specify the model
+          messages: [{ role: 'user', content: newMessage }],
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const replyMessage = response.data.choices[0].message.content;
+      setMessages([...newMessages, { text: replyMessage, sender: 'bot' }]);
+    } catch (error) {
+      console.error('Error fetching response:', error);
+    }
+   
   }
 
   return (
@@ -168,12 +186,13 @@ const Home = () => {
         ) : (
           <>
             {/* Chat Messages Area */}
-            <div className="flex-1 p-4 overflow-y-auto">
+            <div className="flex-1 p-4 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
                 <div key={index} className={`my-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                  <div className={`inline-block p-2 rounded-lg ${msg.sender === 'user' ? 'bg-custom-gray text-white' : 'text-white'}`}>
+                  <p className={`inline-block p-2 mb-4 rounded-xl 
+                    ${msg.sender === 'user' ? 'bg-custom-gray text-white' : 'text-white border border-custom-gray mr-16'}`}>
                     {msg.text}
-                  </div>
+                  </p>
                 </div>
               ))}
             </div>
@@ -181,10 +200,10 @@ const Home = () => {
         )}
 
         {/* Input Area (always visible) */}
-        <form onSubmit={handleSubmit} className="flex flex-col py-2 bg-custom-black2">
+        <form onSubmit={handleSubmit} className="flex flex-col p-2 bg-custom-black2">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
               {suggestions.map((suggestion) => (
                 <div
                   key={suggestion.text}

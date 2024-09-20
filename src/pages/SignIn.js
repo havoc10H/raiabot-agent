@@ -10,7 +10,7 @@ export default function SignIn() {
   const apiKey = process.env.REACT_APP_API_KEY;
   const secretKey = process.env.REACT_APP_SECRET_KEY;
 
-  const signinUrl = "/api/getUser.cfm";
+  const signinUrl = siteUrl + "/api/getUser.cfm";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -26,6 +26,12 @@ export default function SignIn() {
         'SECRETKEY': secretKey,
         'USERNAME': username,
         'PASSWORD': password
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json', // or whatever content type you need
+            // Add any other headers you need here
+          }
         }
       );
       console.log(response);
