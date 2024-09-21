@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/raiabot-agent/static/css/main.e4d13b88.css",
+    "main.js": "/raiabot-agent/static/js/main.334fdf58.js",
+    "static/js/453.1aae9d73.chunk.js": "/raiabot-agent/static/js/453.1aae9d73.chunk.js",
+    "index.html": "/raiabot-agent/index.html",
+    "main.e4d13b88.css.map": "/raiabot-agent/static/css/main.e4d13b88.css.map",
+    "main.334fdf58.js.map": "/raiabot-agent/static/js/main.334fdf58.js.map",
+    "453.1aae9d73.chunk.js.map": "/raiabot-agent/static/js/453.1aae9d73.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e4d13b88.css",
+    "static/js/main.334fdf58.js"
+  ]
+}
