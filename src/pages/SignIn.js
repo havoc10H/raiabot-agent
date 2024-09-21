@@ -19,6 +19,9 @@ export default function SignIn() {
   const handleSignIn = async (e) => {
     e.preventDefault();
 
+    localStorage.setItem('raia-token', 'tempToken');
+    navigate('/');
+    return;
     try {
       const response = await axios.post(signinUrl, 
         {

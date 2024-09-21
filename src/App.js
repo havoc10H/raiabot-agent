@@ -8,7 +8,7 @@ import NotFound from "./pages/NotFound";
 
 function App() {
 
-  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [token, setToken] = useState(localStorage.getItem('raia-token') || '');
 
   return (
     <Router>

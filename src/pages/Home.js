@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaPencilAlt, FaArrowUp, FaBars, FaTimes, FaStar, FaChevronDown, FaCheckCircle } from 'react-icons/fa';
+import { FaPencilAlt, FaArrowUp, FaBars, FaTimes, FaStar, FaChevronDown, FaCheckCircle, FaEllipsisH, FaTrashAlt, FaUpload } from 'react-icons/fa';
 import axios from 'axios';
 
 const Home = () => {
@@ -34,6 +34,30 @@ const Home = () => {
   const toggleDropdown = () => {
     setIsDropdownOpen((prev) => !prev);
   };
+
+  const [historyDropdownOpen, setHistoryDropdownOpen] = useState(null); // State to manage dropdown visibility
+
+  const toggleHistoryDropdown = (chatId) => {
+    setHistoryDropdownOpen(historyDropdownOpen === chatId ? null : chatId);
+  };
+
+  const handleShare = (chatId) => {
+    alert(chatId);
+    console.log(`Share chat with ID: ${chatId}`);
+    // Implement share functionality
+  };
+
+  const handleRename = (chatId) => {
+    console.log(`Rename chat with ID: ${chatId}`);
+    // Implement rename functionality
+  };
+
+  const handleDelete = (chatId) => {
+    if (window.confirm("Are you sure you want to delete this chat?")) {
+      setChats(chats.filter(chat => chat.id !== chatId));
+    }
+  };
+
 
   const username = "shree jaybhay";
 
@@ -98,11 +122,11 @@ const Home = () => {
         {/* App Icon, New Chat */}
         <div className="flex items-center justify-between my-2">
           <div className="flex items-center space-x-2">
-            <div className="bg-blue-500 h-10 w-10 rounded-full">
+            <div className="h-7 w-7 rounded-full">
               <img
                 src={appIcon}
                 alt="App Icon"
-                className="w-10 h-10 mb-4 rounded-full"
+                className="w-7 h-7 mb-4 rounded-full"
               />
             </div>
             <p className="font-semibold">New Chat</p>
@@ -111,10 +135,46 @@ const Home = () => {
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto space-y-2 text-sm">
-          <div className="p-1 text-xs text-custom-gray">Today</div>
+        <div className="flex-1 overflow-y-auto space-y-2 text-sm min-h-[calc(100vh-300px)] max-h-[calc(100vh-200px)]">
+          <span className="p-2 text-xs text-custom-gray">Today</span>
           {chats.map((chat) => (
-            <div key={chat.id} className="p-1 cursor-pointer">{chat.title}</div>
+            <div
+              key={chat.id}
+              className="p-2 rounded-lg hover:bg-custom-black2 cursor-pointer flex justify-between items-center group"
+            >
+              <p>{chat.title}</p>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative">
+                <FaEllipsisH className="text-white flex-shrink-0 ml-2" onClick={() => toggleHistoryDropdown(chat.id)} />
+                <FaTrashAlt className="text-white flex-shrink-0 ml-2" onClick={() => handleDelete(chat.id)}/>
+
+                {/* Dropdown Menu */}
+                {historyDropdownOpen === chat.id && (
+                  <div className="absolute top-8 right-2 w-36 bg-custom-black5 rounded-lg">
+                    <div
+                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      onClick={() => handleShare(chat.id)}
+                    >
+                      <FaUpload className="text-white mr-4" />
+                      <p>Share</p>
+                    </div>
+                    <div
+                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      onClick={() => handleRename(chat.id)}
+                    >
+                      <FaPencilAlt className="text-white mr-4" />
+                      <p>Rename</p>
+                    </div>
+                    <div
+                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      onClick={() => handleDelete(chat.id)}
+                    >
+                      <FaTrashAlt className="text-white mr-4" />
+                      <p>Delete</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           ))}
         </div>
 
@@ -122,8 +182,8 @@ const Home = () => {
         <div className="fixed bottom-0 left-0 p-4">
           <div className="flex-1 space-y-2 text-sm cursor-pointer">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="relative flex items-center justify-center h-8 w-8 rounded-full border-2 border-custom-black2">
-                <FaStar className="text-xl text-white" />
+              <div className="relative flex items-center justify-center h-7 w-7 rounded-full border-2 border-custom-black2">
+                <FaStar className="text-lg text-white" />
               </div>
               <div>
                 <p className="font-semibold">Upgrade plan</p>
@@ -131,7 +191,7 @@ const Home = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="relative flex items-center justify-center h-8 w-8 rounded-full bg-custom-red text-md">{username.charAt(0).toUpperCase()}</div>
+              <div className="relative flex items-center justify-center h-7 w-7 rounded-full bg-custom-red text-md">{username.charAt(0).toUpperCase()}</div>
               <div>
                 <p className="font-semibold">{username}</p>
               </div>
@@ -174,12 +234,12 @@ const Home = () => {
           )}
         </div>
 
-        {/* Initial view with app icon and suggestions */}
+        {/* Initial view with app icon*/}
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1">
             <img
               src={appIcon}
-              className="w-16 h-16 mb-4 rounded-full"
+              className="w-12 h-12 mb-4 rounded-full"
             />
             <h1 className="text-white md:mb-36 mb-16 text-2xl text-bold">How can I help you today?</h1>
           </div>
@@ -224,7 +284,7 @@ const Home = () => {
           )}
 
           {/* Input Field and Submit Button in one row */}
-          <div className="flex items-center px-6">
+          <div className="flex items-center py-2">
             <input
               type="text"
               value={message} // Use message state variable
