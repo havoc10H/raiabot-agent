@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/raiabot-agent/static/css/main.551e1383.css",
-    "main.js": "/raiabot-agent/static/js/main.aa924c01.js",
-    "static/js/453.1aae9d73.chunk.js": "/raiabot-agent/static/js/453.1aae9d73.chunk.js",
-    "index.html": "/raiabot-agent/index.html",
-    "main.551e1383.css.map": "/raiabot-agent/static/css/main.551e1383.css.map",
-    "main.aa924c01.js.map": "/raiabot-agent/static/js/main.aa924c01.js.map",
-    "453.1aae9d73.chunk.js.map": "/raiabot-agent/static/js/453.1aae9d73.chunk.js.map"
+    "main.css": "/static/css/main.551e1383.css",
+    "main.js": "/static/js/main.25526daf.js",
+    "static/js/453.1aae9d73.chunk.js": "/static/js/453.1aae9d73.chunk.js",
+    "index.html": "/index.html",
+    "main.551e1383.css.map": "/static/css/main.551e1383.css.map",
+    "main.25526daf.js.map": "/static/js/main.25526daf.js.map",
+    "453.1aae9d73.chunk.js.map": "/static/js/453.1aae9d73.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.551e1383.css",
-    "static/js/main.aa924c01.js"
+    "static/js/main.25526daf.js"
   ]
 }
