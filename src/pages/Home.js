@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { FaPencilAlt, FaArrowUp, FaBars, FaTimes, FaStar, FaChevronDown, FaCheckCircle, FaEllipsisH, FaTrashAlt, FaUpload } from 'react-icons/fa';
 import axios from 'axios';
 
 const Home = () => {
@@ -42,7 +41,6 @@ const Home = () => {
   };
 
   const handleShare = (chatId) => {
-    alert(chatId);
     console.log(`Share chat with ID: ${chatId}`);
     // Implement share functionality
   };
@@ -59,7 +57,7 @@ const Home = () => {
   };
 
 
-  const username = "shree jaybhay";
+  const username = "John Smith";
 
   const suggestions = [
     { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
@@ -112,64 +110,65 @@ const Home = () => {
     <div className="flex h-screen">
       {/* Left Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-custom-black text-white p-4 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-1/4`}
+        className={`fixed inset-y-0 z-50 w-64 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-1/4 flex flex-col`}
       >
         {/* Close button for mobile */}
         <div className="flex items-center justify-between md:hidden">
-          <FaTimes className="text-2xl cursor-pointer" onClick={() => setIsSidebarOpen(false)} />
+          <i 
+            className="fas fa-times text-md cursor-pointer mb-2" 
+            onClick={() => setIsSidebarOpen(false)} 
+          ></i>
         </div>
 
         {/* App Icon, New Chat */}
-        <div className="flex items-center justify-between my-2">
-          <div className="flex items-center space-x-2">
-            <div className="h-7 w-7 rounded-full">
-              <img
-                src={appIcon}
-                alt="App Icon"
-                className="w-7 h-7 mb-4 rounded-full"
-              />
-            </div>
-            <p className="font-semibold">New Chat</p>
+        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
+          <div className="flex items-center">
+            <img
+              src={appIcon}
+              alt="App Icon"
+              className="w-7 h-7 rounded-full mr-2"
+            />
+            <p className="text-sm font-medium text-white">AI Agent Name</p>
           </div>
-          <FaPencilAlt className="text-xl cursor-pointer" onClick={handleStartNewChat} />
+          <i className="fas fa-pencil-alt text-md" style={{ width: '18px', height: '18px' }}></i>
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto space-y-2 text-sm min-h-[calc(100vh-300px)] max-h-[calc(100vh-200px)]">
-          <span className="p-2 text-xs text-custom-gray">Today</span>
+        <div className="flex-1 overflow-y-auto text-sm">
+          <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
           {chats.map((chat) => (
             <div
               key={chat.id}
-              className="p-2 rounded-lg hover:bg-custom-black2 cursor-pointer flex justify-between items-center group"
+              className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
             >
-              <p>{chat.title}</p>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative">
-                <FaEllipsisH className="text-white flex-shrink-0 ml-2" onClick={() => toggleHistoryDropdown(chat.id)} />
-                <FaTrashAlt className="text-white flex-shrink-0 ml-2" onClick={() => handleDelete(chat.id)}/>
+              <h2 className="truncate mr-2">{chat.title}</h2>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2">
+                <i className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => toggleHistoryDropdown(chat.id)}></i>
+                <i className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => handleDelete(chat.id)}></i>
 
                 {/* Dropdown Menu */}
                 {historyDropdownOpen === chat.id && (
-                  <div className="absolute top-8 right-2 w-36 bg-custom-black5 rounded-lg">
+                  <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
                     <div
-                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2"
                       onClick={() => handleShare(chat.id)}
                     >
-                      <FaUpload className="text-white mr-4" />
-                      <p>Share</p>
+                      <i className="fas fa-upload icon-md" style={{ width: '18px', height: '18px' }}></i>
+                      <span>Share</span>
                     </div>
                     <div
-                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2"
                       onClick={() => handleRename(chat.id)}
                     >
-                      <FaPencilAlt className="text-white mr-4" />
-                      <p>Rename</p>
+                      <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                      <span>Rename</span>
                     </div>
                     <div
-                      className="p-2 m-2 rounded-lg hover:bg-custom-black3 cursor-pointer flex items-center"
+                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2 text-custom-red"
                       onClick={() => handleDelete(chat.id)}
                     >
-                      <FaTrashAlt className="text-white mr-4" />
-                      <p>Delete</p>
+                      <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                      <span>Delete</span>
                     </div>
                   </div>
                 )}
@@ -178,56 +177,65 @@ const Home = () => {
           ))}
         </div>
 
-        {/* User Info at the bottom, fixed position */}
-        <div className="fixed bottom-0 left-0 p-4">
-          <div className="flex-1 space-y-2 text-sm cursor-pointer">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="relative flex items-center justify-center h-7 w-7 rounded-full border-2 border-custom-black2">
-                <FaStar className="text-lg text-white" />
-              </div>
-              <div>
-                <p className="font-semibold">Upgrade plan</p>
-                <p className="text-sm text-custom-gray">Get GPT-4, DALL·E, and more</p>
-              </div>
+        {/* User Info at the bottom */}
+        <div className="flex-shrink-0">
+          <div id="upgrade-plan" className="flex items-center gap-2 Upgrade-plan py-[10px] pl-2 hover:bg-[#2F2F2F] w-auto rounded-xl cursor-pointer">
+            <div className="text-white border-2 rounded-full w-7 h-7 border-[#292929] flex justify-center items-center">
+              <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="relative flex items-center justify-center h-7 w-7 rounded-full bg-custom-red text-md">{username.charAt(0).toUpperCase()}</div>
-              <div>
-                <p className="font-semibold">{username}</p>
-              </div>
+            <div>
+              <h1 className="text-sm font-normal text-white">ask raia</h1>
+              <p className="text-xs font-normal text-[#676767]">
+                Do you need help?
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+            <div className="flex items-center justify-center w-8 text-white">
+              <img 
+                className="rounded-full" 
+                src="https://lh3.googleusercontent.com/a/ACg8ocKu7kRG0wBgGFLTuqOultb-EdeAZAyAsRPfwLOuiA5i=s96-c" 
+                alt="Profile"
+              />
+            </div>
+            <div>
+              <h1 className="text-sm font-normal text-white">{username}</h1>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="relative flex-1 flex flex-col bg-custom-black2 md:px-16">
+      <div className="relative flex-1 flex flex-col bg-main-background md:px-16">
         {/* Top Header for Mobile */}
-        <div className="flex items-center justify-between p-4 bg-custom-black text-white md:hidden">
-          <FaBars className="text-2xl cursor-pointer" onClick={() => setIsSidebarOpen(true)} />
-          <FaPencilAlt className="text-xl cursor-pointer" onClick={handleStartNewChat} />
+        <div className="flex items-center justify-between border-b-2 border-gray-600 p-3 text-white md:hidden">
+          <i class="fas fa-bars cursor-pointer" onClick={() => setIsSidebarOpen(true)} ></i>
+          <i class="fas fa-edit cursor-pointer" onClick={handleStartNewChat} ></i>
         </div>
 
         {/* Select ChatGPT Engine */}
-        <div className="absolute top-2 left-40 md:left-4 z-10 w-1/3 text-white p-2 cursor-pointer" onClick={toggleDropdown}>
-          <div className="flex items-center mb-4 ">
-            <span>{selectedEngine.id}</span>
-            <span className="text-custom-gray pl-2">{selectedEngine.version}</span>
-            <FaChevronDown className="ml-2" />
+        <div className="absolute md:top-2 left-48 md:left-4 z-10 w-1/3 text-white cursor-pointer" onClick={toggleDropdown}>
+          <div className="flex items-center w-36 p-2 rounded-lg hover:bg-custom-hover-gray4">
+            <span className="text-lg font-semibold">{selectedEngine.id}</span>
+            <span className="text-engine-version-text pl-2">
+              {selectedEngine.version}
+              <i class="fas fa-chevron-down text-token-text-tertiary pl-2 text-xs"></i>
+            </span>
           </div>
           {isDropdownOpen && (
-            <div className="absolute left-0 mt-1 w-full bg-custom-black5 rounded">
+            <div className="absolute left-0 mt-1 2xl:w-[400px] md:w-[45vw] lg:w-[45vw] xl:w-[24.890190336749633vw] bg-threeoptions-background rounded-lg">
               {engines.map((engine) => (
                 <div
                   key={engine.name}
-                  className="p-2 m-2 rounded hover:bg-custom-black3 cursor-pointer flex justify-between items-center"
+                  className="p-2 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
                   onClick={() => handleEngineChange(engine)}
                 >
-                  <div>
+                  <div class="text-sm font-medium">
                     <p>{engine.name}</p>
-                    <p className="text-sm text-custom-gray">{engine.description}</p>
+                    <p className="text-engine-version-text">{engine.description}</p>
                   </div>
-                  {selectedEngine.name === engine.name && <FaCheckCircle className="text-white flex-shrink-0" />}
+                  {selectedEngine.name === engine.name && <i className="fas fa-check-circle text-white flex-shrink-0"></i> }
                 </div>
               ))}
             </div>
@@ -239,9 +247,9 @@ const Home = () => {
           <div className="flex flex-col items-center justify-center flex-1">
             <img
               src={appIcon}
-              className="w-12 h-12 mb-4 rounded-full"
+              className="w-12 h-12 mb-3 rounded-full"
             />
-            <h1 className="text-white md:mb-36 mb-16 text-2xl text-bold">How can I help you today?</h1>
+            <h1 className="text-white mb-16 text-2xl text-medium">How can I help you today?</h1>
           </div>
         ) : (
           <>
@@ -250,7 +258,7 @@ const Home = () => {
               {messages.map((msg, index) => (
                 <div key={index} className={`my-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                   <p className={`inline-block p-2 mb-4 rounded-xl 
-                    ${msg.sender === 'user' ? 'bg-custom-gray text-white' : 'text-white border border-custom-gray mr-16'}`}>
+                    ${msg.sender === 'user' ? 'bg-custom-hover-gray3 text-white' : 'text-white border border-suggestion-border mr-16'}`}>
                     {msg.text}
                   </p>
                 </div>
@@ -260,23 +268,23 @@ const Home = () => {
         )}
 
         {/* Input Area (always visible) */}
-        <form onSubmit={handleSubmit} className="flex flex-col p-2 bg-custom-black2">
+        <form onSubmit={handleSubmit} className="flex flex-col p-2 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               {suggestions.map((suggestion) => (
                 <div
                   key={suggestion.text}
-                  className="flex justify-between items-center p-2 border border-custom-black3 rounded-xl text-white text-left cursor-pointer hover:bg-custom-black4 transition-all duration-200 group"
+                  className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
                   onClick={() => { handleStartChat(suggestion.text) }}
                 >
                   <div className="flex flex-col">
-                    <span className="block text-md font-semibold">{suggestion.text}</span> {/* Text in white */}
-                    <span className="block text-sm text-custom-gray">{suggestion.description}</span> {/* Description in gray */}
+                    <p className="text-sm font-medium text-white">{suggestion.text}</p> 
+                    <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
                   </div>
                   {/* Button only visible on hover */}
-                  <button className="ml-2 p-2 bg-custom-black2 text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <FaArrowUp className="text-sm" />
+                  <button className="ml-2 p-2 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <i class="fas fa-arrow-up icon-sm text-token-text-primary"></i>
                   </button>
                 </div>
               ))}
@@ -284,20 +292,24 @@ const Home = () => {
           )}
 
           {/* Input Field and Submit Button in one row */}
-          <div className="flex items-center py-2">
+          <div className="flex items-center py-2 relative">
             <input
               type="text"
-              value={message} // Use message state variable
-              onChange={(e) => setMessage(e.target.value)} // Set message state
-              className="flex-1 p-2 border rounded-lg bg-custom-black2 border-custom-black3 text-white focus:outline-none focus:border-custom-black3 placeholder-custom-gray"
-              placeholder="Message ChatGPT ..."
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
+              placeholder="Ask me anything ..."
             />
             
             {/* Submit Button */}
-            <button type="submit" className="ml-2 p-2 bg-custom-black4 text-black rounded-lg flex items-center">
-              <FaArrowUp className="text-xl" />
+            <button 
+              type="submit" 
+              className="absolute right-3 top-4 p-2 bg-button-background text-black rounded-lg flex items-center"
+            >
+              <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
             </button>
           </div>
+
         </form>
       </div>
     </div>
