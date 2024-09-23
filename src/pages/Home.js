@@ -4,7 +4,11 @@ import qs from "qs";
 import config from '../config.json';
 
 const Home = () => {
+  const appName = config.appName;
+  const appIcon = config.appIcon;
+
   const siteUrl = config.siteUrl;
+
   const apiKey  = config.apiKey;
   const secretKey = config.secretKey;
 
@@ -45,8 +49,6 @@ const Home = () => {
     handleGetAgents();
   }, [handleGetAgents]); 
 
-  const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
-
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [chats, setChats] = useState([
@@ -64,7 +66,6 @@ const Home = () => {
 
   const handleEngineChange = (engine) => {
     setSelectedEngine(engine);
-    setIsDropdownOpen(false);
     toggleDropdown();
   };
 
@@ -196,10 +197,10 @@ const Home = () => {
           <div className="flex items-center">
             <img
               src={appIcon}
-              alt="App Icon"
+              alt={appName}
               className="w-7 h-7 rounded-full mr-2"
             />
-            <p className="text-sm font-medium text-white">AI Agent Name</p>
+            <p className="text-sm font-medium text-white">{selectedEngine?selectedEngine.name:''}</p>
           </div>
           <i className="fas fa-pencil-alt text-md" style={{ width: '18px', height: '18px' }}></i>
         </div>
@@ -235,7 +236,7 @@ const Home = () => {
                       <span>Rename</span>
                     </div>
                     <div
-                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-custom-red"
+                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
                       onClick={() => handleDelete(chat.id)}
                     >
                       <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
@@ -250,7 +251,7 @@ const Home = () => {
 
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
-          <div id="upgrade-plan" className="flex items-center gap-3 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div className="flex items-center gap-3 py-[10px] pl-3 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
             <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
@@ -262,13 +263,9 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
-            <div className="flex items-center justify-center w-8 text-white">
-              <img 
-                className="rounded-full" 
-                src="https://lh3.googleusercontent.com/a/ACg8ocKu7kRG0wBgGFLTuqOultb-EdeAZAyAsRPfwLOuiA5i=s96-c" 
-                alt="Profile"
-              />
+          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+            <div className="flex items-center justify-center w-8 h-8 bg-custom-red rounded-full text-white">
+              <span className="text-sm">{loginUsername.charAt(0).toUpperCase()}</span>
             </div>
             <div>
               <h1 className="text-sm font-normal text-white">{loginUsername}</h1>
@@ -283,9 +280,9 @@ const Home = () => {
         <div className="flex items-center justify-between border-b-2 border-gray-600 md:border-0 p-3 text-white">
           <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
-          <div className="relative flex-1 flex justify-center md:justify-start cursor-pointer" onClick={toggleDropdown}>
+          <div className="relative flex-1 flex justify-center md:justify-start" >
             {selectedEngine && (
-            <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4">
+            <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" onClick={toggleDropdown}>
               <span className="text-lg font-semibold">{selectedEngine.alias}</span>
               <span className="text-engine-version-text pl-2">
                 {selectedEngine.version}
@@ -322,7 +319,7 @@ const Home = () => {
           <div className="flex flex-col items-center justify-center flex-1">
             <img
               src={appIcon}
-              alt="App Icon"
+              alt={appName}
               className="w-12 h-12 my-3 rounded-full"
             />
             <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
@@ -330,7 +327,7 @@ const Home = () => {
         ) : (
           <>
             {/* Chat Messages Area */}
-            <div className="flex-1 p-4 overflow-y-auto md:mt-8">
+            <div className="flex-1 p-3 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
                   <p className={`inline-block p-3 rounded-xl 
@@ -343,7 +340,6 @@ const Home = () => {
           </>
         )}
 
-        {/* Input Area (always visible) */}
         <form onSubmit={handleSubmit} className="flex flex-col p-3 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (

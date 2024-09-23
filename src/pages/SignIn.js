@@ -6,11 +6,12 @@ import config from '../config.json';
 
 export default function SignIn({ setIsAuthenticated }) {
   const appName = config.appName;
+  const appIcon = config.appIcon;
+  
   const siteUrl = config.siteUrl;
+
   const apiKey  = config.apiKey;
   const secretKey = config.secretKey;
-
-  const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

@@ -15,6 +15,9 @@ const Main = () => {
     if (metaDescription) {
       metaDescription.setAttribute("content", config.description);
     }
+
+    document.body.style.backgroundColor = "#171717"; // Set the background color here
+
   }, []);
 
   return <App />;

@@ -3,9 +3,9 @@ import config from '../config.json';
 
 export default function SignUp() {
   const appName = config.appName;
-  const siteUrl = config.siteUrl;
+  const appIcon = config.appIcon;
 
-  const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
+  const siteUrl = config.siteUrl;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-sign-background text-white">
