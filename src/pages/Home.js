@@ -182,7 +182,7 @@ const Home = () => {
     <div className="flex h-screen">
       {/* Left Sidebar */}
       <div
-        className={`fixed inset-y-0 z-50 w-64 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 md:w-1/4 flex flex-col`}
+        className={`fixed inset-y-0 z-50 md:block md:w-1/4 lg:w-1/5 xl:w-1/4 2xl:w-1/4 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
       >
         {/* Close button for mobile */}
         <div className="flex items-center justify-between md:hidden">
