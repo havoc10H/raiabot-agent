@@ -185,38 +185,23 @@ const Home = () => {
   }
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [realHeight, setRealHeight] = useState(window.innerHeight);
 
   const handleResize = () => {
     setIsMobile(window.innerWidth < 1024);
+    setRealHeight(window.innerHeight);
   };
 
   useEffect(() => {
-    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
 
+    window.addEventListener('resize', handleResize);
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
 
-
   const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
-
-  const [realHeight, setRealHeight] = useState(window.innerHeight);
-
-  const updateHeight = () => {
-    setRealHeight(window.innerHeight);
-  };
-
-  useEffect(() => {
-    // Set the initial height
-    updateHeight();
-    
-    // Add event listener to update height on resize
-    window.addEventListener('resize', updateHeight);
-    
-    // Clean up the event listener on component unmount
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
 
 
   return (
@@ -355,7 +340,12 @@ const Home = () => {
         {/* Initial view with app icon*/}
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1">
-            
+            <img
+              src={appIcon}
+              alt={appName}
+              className="w-12 h-12 mb-2 rounded-full"
+            />
+            <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
           </div>
         ) : (
           <>
@@ -376,36 +366,24 @@ const Home = () => {
         <form onSubmit={handleSubmit} className="flex-shrink-0 flex flex-col p-3 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
-            <div>
-              <div className="flex flex-col items-center justify-center mb-8">
-                <img
-                  src={appIcon}
-                  alt={appName}
-                  className="w-12 h-12 mb-2 rounded-full"
-                />
-                <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
-              </div>
-
-              <div className="grid lg:grid-cols-2 gap-3">
-                {suggestionsToDisplay.map((suggestion) => (
-                  <div
-                    key={suggestion.text}
-                    className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
-                    onClick={() => { handleStartChat(suggestion.text) }}
-                  >
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium text-white">{suggestion.text}</p> 
-                      <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
-                    </div>
-                    {/* Button only visible on hover */}
-                    <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
-                    </button>
-                  </div>
-                ))}
+            <div className="grid lg:grid-cols-2 gap-3">
+              {suggestionsToDisplay.map((suggestion) => (
+              <div
+                key={suggestion.text}
+                className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
+                onClick={() => { handleStartChat(suggestion.text) }}
+              >
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium text-white">{suggestion.text}</p> 
+                  <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
                 </div>
+                {/* Button only visible on hover */}
+                <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
+                </button>
+              </div>
+              ))}
             </div>
-           
           )}
 
           {/* Input Field and Submit Button in one row */}
