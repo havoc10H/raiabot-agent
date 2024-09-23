@@ -1,18 +1,16 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import qs from "qs";
+import config from '../config.json';
 
-export default function SignIn() {
-  const appName = process.env.REACT_APP_NAME;
-
-  const siteUrl = process.env.REACT_APP_SITE_URL;
-
-  const apiKey = process.env.REACT_APP_API_KEY;
-  const secretKey = process.env.REACT_APP_SECRET_KEY;
+export default function SignIn({ setIsAuthenticated }) {
+  const appName = config.appName;
+  const siteUrl = config.siteUrl;
+  const apiKey  = config.apiKey;
+  const secretKey = config.secretKey;
 
   const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
-
-  const signinUrl = siteUrl + "/api/getUser.cfm";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -21,35 +19,49 @@ export default function SignIn() {
   const handleSignIn = async (e) => {
     e.preventDefault();
 
-    try {
-      const response = await axios.post(signinUrl, 
-        {
-        'APIKEY': apiKey,
-        'SECRETKEY': secretKey,
-        'USERNAME': username,
-        'PASSWORD': password
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json', // or whatever content type you need
-            // Add any other headers you need here
-          }
-        }
-      );
-      localStorage.setItem('raia-token', 'tempToken');
-      navigate('/');
-    } catch (error) {
-      localStorage.setItem('raia-token', 'tempToken');
-      navigate('/');
-      console.error("Error signing in:", error);
-    }
+    const data = qs.stringify({
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'USERNAME': username,
+      'PASSWORD': password,
+    });
+    
+    const config = {
+      method: 'post',
+      url: siteUrl + "/api/getUser.cfm",
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      data: data,
+    };
+    
+    axios.request(config)
+    .then((response) => {
+      const responseData = response.data[0];
+
+      if (responseData) {
+
+        const loginKey = responseData.loginKey;
+        const loginUsername = `${responseData.firstName} ${responseData.lastName}`;
+  
+        localStorage.setItem('raia-loginKey', loginKey);
+        localStorage.setItem('raia-loginUsername', loginUsername);
+
+        setIsAuthenticated(true);
+
+        navigate('/');
+      } else {
+        console.error('Invalid response data:', response.data);
+      }
+    })
+    .catch((error) => {
+      console.error('Error signing in:', error.response ? error.response.data : error.message);
+    });
+    
   };
 
   return (
-    <div
-      id="page-container"
-      className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-custom-black text-white"
-    >
+    <div className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-sign-background text-white">
       <main id="page-content" className="flex max-w-full flex-auto flex-col">
         <div className="relative mx-auto flex min-h-dvh w-full max-w-10xl items-center justify-center overflow-hidden p-4 lg:p-8">
           <section className="w-full max-w-xl py-6">
@@ -65,14 +77,14 @@ export default function SignIn() {
                   <h1 className="text-xl font-semibold">{appName}</h1>
                 </div>
               </div>
-              <h2 className="text-sm font-medium text-custom-gray">
+              <h2 className="text-sm font-medium text-gray-400">
                 Welcome, please sign in to {appName}
               </h2>
             </header>
             {/* END Header */}
 
             {/* Sign In Form */}
-            <div className="flex flex-col overflow-hidden rounded-lg bg-custom-black2 shadow-sm">
+            <div className="flex flex-col overflow-hidden rounded-lg bg-sign-dialog-background shadow-sm">
               <div className="grow p-5 md:px-16 md:py-12">
                 <form
                   onSubmit={handleSignIn}
@@ -80,7 +92,7 @@ export default function SignIn() {
                 >
                   <div className="space-y-1">
                     <label htmlFor="username" className="text-sm font-medium">
-                      username
+                      Username
                     </label>
                     <input
                       type="username"
@@ -88,8 +100,8 @@ export default function SignIn() {
                       name="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6 placeholder-gray-500 focus:ring"
+                      placeholder="Enter your username or email"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6 focus:ring"
                     />
                   </div>
                   <div className="space-y-1">
@@ -103,7 +115,7 @@ export default function SignIn() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter your password"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6"
                     />
                   </div>
                   <div>
@@ -117,12 +129,7 @@ export default function SignIn() {
                         />
                         <span className="ml-2 text-sm">Remember me</span>
                       </label>
-                      <a
-                        href="#"
-                        className="inline-block text-sm font-medium text-blue-600 hover:text-blue-400"
-                      >
-                        Forgot Password?
-                      </a>
+                      <Link to="/forgot-password" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-400">Forgot Password?</Link>
                     </div>
                     <button
                       type="submit"
@@ -134,14 +141,14 @@ export default function SignIn() {
                     <div className="my-5 flex items-center">
                       <span
                         aria-hidden="true"
-                        className="h-0.5 grow rounded bg-custom-gray"
+                        className="h-0.5 grow rounded bg-sign-dialog-footer-background"
                       />
-                      <span className="rounded-full bg-custom-gray px-3 py-1 text-xs font-medium text-custom-black2">
+                      <span className="rounded-full bg-sign-dialog-footer-background px-3 py-1 text-xs font-medium text-white">
                         or sign in with
                       </span>
                       <span
                         aria-hidden="true"
-                        className="h-0.5 grow rounded bg-custom-gray"
+                        className="h-0.5 grow rounded bg-sign-dialog-footer-background"
                       />
                     </div>
                     {/* END Divider: With Label */}
@@ -180,27 +187,17 @@ export default function SignIn() {
                   </div>
                 </form>
               </div>
-              <div className="grow bg-custom-black5 p-5 text-center text-sm md:px-16">
+              <div className="grow bg-sign-dialog-footer-background p-5 text-center text-sm md:px-16">
                 Don’t have an account yet?{" "}
-                <a
-                  href="/signup"
-                  className="font-medium text-blue-600 hover:text-blue-400"
-                >
-                  Sign up
-                </a>
+                <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-400">Sign up</Link>
               </div>
             </div>
             {/* END Sign In Form */}
 
             {/* Footer */}
-            <div className="mt-6 text-center text-sm text-custom-gray">
-              Powered by{" "}
-              <a
-                href={siteUrl}
-                className="font-medium text-blue-600 hover:text-blue-400"
-              >
-                {appName}
-              </a>
+            <div className="mt-6 text-center text-sm text-gray-400">
+              Powered by&nbsp;
+              <Link to={siteUrl} className="font-medium text-blue-600 hover:text-blue-400">{appName}</Link>
             </div>
             {/* END Footer */}
           </section>

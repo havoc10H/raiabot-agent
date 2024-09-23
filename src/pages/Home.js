@@ -1,10 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import qs from "qs";
+import config from '../config.json';
 
 const Home = () => {
-  const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
+  const siteUrl = config.siteUrl;
+  const apiKey  = config.apiKey;
+  const secretKey = config.secretKey;
 
-  const openaiApiKey = process.env.REACT_APP_OPENAI_API_KEY;
+  const loginKey = localStorage.getItem('raia-loginKey');
+  const loginUsername = localStorage.getItem('raia-loginUsername');
+
+  const handleGetAgents = useCallback(() => {
+    const data = qs.stringify({
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+    });
+    
+    const requestConfig = {
+      method: 'post',
+      url: siteUrl + "/api/getAgents.cfm",
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      data: data,
+    };
+    
+    axios.request(requestConfig)
+    .then((response) => {
+      const fetchedEngines = response.data;
+
+      if (fetchedEngines && fetchedEngines.length > 0) {
+        setEngines(fetchedEngines); // Set the fetched engines
+        setSelectedEngine(fetchedEngines[0]); // Set the first engine as the selected engine
+      }
+    })
+    .catch((error) => {
+      console.error(error.response ? error.response.data : error.message);
+    });
+  }, [apiKey, secretKey, loginKey, siteUrl]); // Dependencies
+
+  useEffect(() => {
+    handleGetAgents();
+  }, [handleGetAgents]); 
+
+  const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -16,16 +57,13 @@ const Home = () => {
   ]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const engines = [
-    { id: 'ChatGPT', name: 'Sales Assistant', version: '3.5', description: 'Converting and Qualifying Leads' },
-    { id: 'ChatGPT', name: 'GPT-4', version: '4.0', description: 'Our smartest and most capable model, Includes DALL·E, browsing and more.' },
-  ];
+  const [engines, setEngines] = useState([]);
 
-  const [selectedEngine, setSelectedEngine] = useState(engines[0]);
+  const [selectedEngine, setSelectedEngine] = useState();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const handleEngineChange = (engineId) => {
-    setSelectedEngine(engineId);
+  const handleEngineChange = (engine) => {
+    setSelectedEngine(engine);
     setIsDropdownOpen(false);
     toggleDropdown();
   };
@@ -56,9 +94,6 @@ const Home = () => {
     }
   };
 
-
-  const username = "John Smith";
-
   const suggestions = [
     { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
     { text: `Explain options trading`, description: `if I'm familiar with buying and selling` },
@@ -76,6 +111,38 @@ const Home = () => {
     handleStartChat(message);
   };
 
+  const handleSaveMessage = async (messageData, role, created_at, message_id) => {
+    const data = qs.stringify({
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+      'thread_id': 0,
+      'assistant_id': 0,
+      'message_id': message_id,
+      'created_at': created_at,
+      'run_id': 0,
+      'message': messageData,
+      'role': role,
+    });
+    
+    const requestConfig = {
+      method: 'post',
+      url: siteUrl + "/api/saveMessage.cfm",
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      data: data,
+    };
+    
+    axios.request(requestConfig)
+    .then((response) => {
+      console.log(response);
+    })
+    .catch((error) => {
+      console.error(error.response ? error.response.data : error.message);
+    });
+  }
+
   const handleStartChat = async (newMessage) => {
     if (!newMessage.trim()) return; // Check if the message is empty or only whitespace
 
@@ -92,14 +159,18 @@ const Home = () => {
         },
         {
           headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
+            'Authorization': `Bearer ${selectedEngine.openai_api_key}`,
             'Content-Type': 'application/json',
           },
         }
       );
+      console.log(response);
+      const responeData = response.data;
+      const replyMessage = responeData.choices[0].message.content;
+      setMessages([...newMessages, { text: replyMessage, sender: 'assistant' }]);
 
-      const replyMessage = response.data.choices[0].message.content;
-      setMessages([...newMessages, { text: replyMessage, sender: 'bot' }]);
+      handleSaveMessage(newMessage, 'user', responeData.created, responeData.id);
+      handleSaveMessage(replyMessage, 'assistant', responeData.created, responeData.id);
     } catch (error) {
       console.error('Error fetching response:', error);
     }
@@ -121,7 +192,7 @@ const Home = () => {
         </div>
 
         {/* App Icon, New Chat */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
+        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
           <div className="flex items-center">
             <img
               src={appIcon}
@@ -135,14 +206,14 @@ const Home = () => {
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto text-sm">
-          <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
+          <h1 className="p-3 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
           {chats.map((chat) => (
             <div
               key={chat.id}
-              className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
+              className="p-3 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
             >
               <h2 className="truncate mr-2">{chat.title}</h2>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
                 <i className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => toggleHistoryDropdown(chat.id)}></i>
                 <i className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => handleDelete(chat.id)}></i>
 
@@ -150,21 +221,21 @@ const Home = () => {
                 {historyDropdownOpen === chat.id && (
                   <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
                     <div
-                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2"
+                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
                       onClick={() => handleShare(chat.id)}
                     >
                       <i className="fas fa-upload icon-md" style={{ width: '18px', height: '18px' }}></i>
                       <span>Share</span>
                     </div>
                     <div
-                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2"
+                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
                       onClick={() => handleRename(chat.id)}
                     >
                       <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
                       <span>Rename</span>
                     </div>
                     <div
-                      className="p-2 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-2 text-custom-red"
+                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-custom-red"
                       onClick={() => handleDelete(chat.id)}
                     >
                       <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
@@ -179,19 +250,19 @@ const Home = () => {
 
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
-          <div id="upgrade-plan" className="flex items-center gap-2 Upgrade-plan py-[10px] pl-2 hover:bg-[#2F2F2F] w-auto rounded-xl cursor-pointer">
-            <div className="text-white border-2 rounded-full w-7 h-7 border-[#292929] flex justify-center items-center">
+          <div id="upgrade-plan" className="flex items-center gap-3 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+            <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
             <div>
               <h1 className="text-sm font-normal text-white">ask raia</h1>
-              <p className="text-xs font-normal text-[#676767]">
+              <p className="text-xs font-normal text-custom-text-gray">
                 Do you need help?
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div className="flex items-center gap-3 Upgrade-plan py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
             <div className="flex items-center justify-center w-8 text-white">
               <img 
                 className="rounded-full" 
@@ -200,46 +271,50 @@ const Home = () => {
               />
             </div>
             <div>
-              <h1 className="text-sm font-normal text-white">{username}</h1>
+              <h1 className="text-sm font-normal text-white">{loginUsername}</h1>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="relative flex-1 flex flex-col bg-main-background md:px-16">
+      <div className="flex-1 flex flex-col bg-main-background">
         {/* Top Header for Mobile */}
-        <div className="flex items-center justify-between border-b-2 border-gray-600 p-3 text-white md:hidden">
-          <i class="fas fa-bars cursor-pointer" onClick={() => setIsSidebarOpen(true)} ></i>
-          <i class="fas fa-edit cursor-pointer" onClick={handleStartNewChat} ></i>
-        </div>
+        <div className="flex items-center justify-between border-b-2 border-gray-600 md:border-0 p-3 text-white">
+          <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
-        {/* Select ChatGPT Engine */}
-        <div className="absolute md:top-2 left-48 md:left-4 z-10 w-1/3 text-white cursor-pointer" onClick={toggleDropdown}>
-          <div className="flex items-center w-36 p-2 rounded-lg hover:bg-custom-hover-gray4">
-            <span className="text-lg font-semibold">{selectedEngine.id}</span>
-            <span className="text-engine-version-text pl-2">
-              {selectedEngine.version}
-              <i class="fas fa-chevron-down text-token-text-tertiary pl-2 text-xs"></i>
-            </span>
-          </div>
-          {isDropdownOpen && (
-            <div className="absolute left-0 mt-1 2xl:w-[400px] md:w-[45vw] lg:w-[45vw] xl:w-[24.890190336749633vw] bg-threeoptions-background rounded-lg">
-              {engines.map((engine) => (
-                <div
-                  key={engine.name}
-                  className="p-2 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
-                  onClick={() => handleEngineChange(engine)}
-                >
-                  <div class="text-sm font-medium">
-                    <p>{engine.name}</p>
-                    <p className="text-engine-version-text">{engine.description}</p>
-                  </div>
-                  {selectedEngine.name === engine.name && <i className="fas fa-check-circle text-white flex-shrink-0"></i> }
-                </div>
-              ))}
+          <div className="relative flex-1 flex justify-center md:justify-start cursor-pointer" onClick={toggleDropdown}>
+            {selectedEngine && (
+            <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4">
+              <span className="text-lg font-semibold">{selectedEngine.alias}</span>
+              <span className="text-engine-version-text pl-2">
+                {selectedEngine.version}
+                <i className="fas fa-chevron-down text-token-text-tertiary pl-2 text-xs"></i>
+              </span>
             </div>
-          )}
+            )}
+            {isDropdownOpen && (
+            <div className="absolute mt-14 2xl:w-[400px] md:w-[45vw] lg:w-[45vw] xl:w-[25vw] bg-threeoptions-background rounded-lg max-h-48 overflow-y-auto">
+              
+              {engines.map((engine) => (
+              <div
+                key={engine.name}
+                className="p-3 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
+                onClick={() => handleEngineChange(engine)}
+              >
+                <div className="text-sm font-medium">
+                  <p>{engine.name}</p>
+                  <p className="text-engine-version-text">{engine.description}</p>
+                </div>
+                {selectedEngine.name === engine.name && <i className="fas fa-check-circle text-white flex-shrink-0"></i>}
+              </div>
+              ))}
+
+            </div>
+            )}
+          </div>
+
+          <i className="fas fa-edit cursor-pointer md:hidden" onClick={handleStartNewChat} ></i>
         </div>
 
         {/* Initial view with app icon*/}
@@ -247,17 +322,18 @@ const Home = () => {
           <div className="flex flex-col items-center justify-center flex-1">
             <img
               src={appIcon}
-              className="w-12 h-12 mb-3 rounded-full"
+              alt="App Icon"
+              className="w-12 h-12 my-3 rounded-full"
             />
-            <h1 className="text-white mb-16 text-2xl text-medium">How can I help you today?</h1>
+            <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
           </div>
         ) : (
           <>
             {/* Chat Messages Area */}
             <div className="flex-1 p-4 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
-                <div key={index} className={`my-2 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                  <p className={`inline-block p-2 mb-4 rounded-xl 
+                <div key={index} className={`mb-3 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                  <p className={`inline-block p-3 rounded-xl 
                     ${msg.sender === 'user' ? 'bg-custom-hover-gray3 text-white' : 'text-white border border-suggestion-border mr-16'}`}>
                     {msg.text}
                   </p>
@@ -268,10 +344,10 @@ const Home = () => {
         )}
 
         {/* Input Area (always visible) */}
-        <form onSubmit={handleSubmit} className="flex flex-col p-2 md:px-16">
+        <form onSubmit={handleSubmit} className="flex flex-col p-3 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
-            <div className="grid md:grid-cols-2 gap-4 mb-4">
+            <div className="grid lg:grid-cols-2 gap-3">
               {suggestions.map((suggestion) => (
                 <div
                   key={suggestion.text}
@@ -283,8 +359,8 @@ const Home = () => {
                     <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
                   </div>
                   {/* Button only visible on hover */}
-                  <button className="ml-2 p-2 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <i class="fas fa-arrow-up icon-sm text-token-text-primary"></i>
+                  <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
                   </button>
                 </div>
               ))}
@@ -302,10 +378,7 @@ const Home = () => {
             />
             
             {/* Submit Button */}
-            <button 
-              type="submit" 
-              className="absolute right-3 top-4 p-2 bg-button-background text-black rounded-lg flex items-center"
-            >
+            <button type="submit" className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
               <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
             </button>
           </div>

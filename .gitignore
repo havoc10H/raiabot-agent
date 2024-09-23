@@ -3,10 +3,4 @@
 # dependencies
 /node_modules
 
-# production
-/build
-
-# misc
-.env
-
 npm-debug.log*

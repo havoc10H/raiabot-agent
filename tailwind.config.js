@@ -11,6 +11,7 @@ module.exports = {
         'custom-hover-gray2': '#B8B8B8',
         'custom-hover-gray3': '#2F2F2F',
         'custom-text-gray': '#676767',
+        'custom-bother-gray': '#292929',
         'custom-red': '#C74444',
         'main-background': '#212121',
         'engine-version-text': '#B4B4B4',
@@ -18,7 +19,10 @@ module.exports = {
         'custom-hover-gray5': '#424242',
         'suggestion-border': '#4E4E4E',
         'suggestion-decription-text': '#828282',
-        'button-background': '#383838'
+        'button-background': '#383838',
+        'sign-background': '#111827',
+        'sign-dialog-background': '#1F2937',
+        'sign-dialog-footer-background': '#2B3544'
       },
     },
   },

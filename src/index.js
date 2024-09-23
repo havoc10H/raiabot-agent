@@ -1,13 +1,27 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import config from './config.json'; // Import your config file
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+const Main = () => {
+  useEffect(() => {
+    document.title = config.appName; // Set the title from config.json
+
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", config.description);
+    }
+  }, []);
+
+  return <App />;
+};
 root.render(
   <React.StrictMode>
-    <App />
+    <Main />
   </React.StrictMode>
 );
 

@@ -1,15 +1,14 @@
-export default function SignUp() {
-  const appName = process.env.REACT_APP_NAME;
+import { Link } from 'react-router-dom';
+import config from '../config.json';
 
-  const siteUrl = process.env.REACT_APP_SITE_URL;
+export default function SignUp() {
+  const appName = config.appName;
+  const siteUrl = config.siteUrl;
 
   const appIcon = 'https://raiabot.com/assets/images/favicon.ico';
 
   return (
-    <div
-      id="page-container"
-      className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-custom-black text-white"
-    >
+    <div className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-sign-background text-white">
       <main id="page-content" className="flex max-w-full flex-auto flex-col">
         <div className="relative mx-auto flex min-h-dvh w-full max-w-10xl items-center justify-center overflow-hidden p-4 lg:p-8">
           <section className="w-full max-w-xl py-6">
@@ -25,14 +24,14 @@ export default function SignUp() {
                   <h1 className="text-xl font-semibold">{appName}</h1>
                 </div>
               </div>
-              <h2 className="text-sm font-medium text-custom-gray">
+              <h2 className="text-sm font-medium text-gray-400">
                 Create your own account in one single step
               </h2>
             </header>
             {/* END Header */}
 
             {/* Sign Up Form */}
-            <div className="flex flex-col overflow-hidden rounded-lg bg-custom-black2 shadow-sm">
+            <div className="flex flex-col overflow-hidden rounded-lg bg-sign-dialog-background shadow-sm">
               <div className="grow p-5 md:px-16 md:py-12">
                 <form
                   onSubmit={(e) => e.preventDefault()}
@@ -40,14 +39,14 @@ export default function SignUp() {
                 >
                   <div className="space-y-1">
                     <label htmlFor="name" className="text-sm font-medium">
-                      Name
+                      Username
                     </label>
                     <input
                       type="text"
                       id="name"
                       name="name"
-                      placeholder="Enter your first name"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6 placeholder-gray-500 focus:ring"
+                      placeholder="Enter your username"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6 focus:ring"
                     />
                   </div>
                   <div className="space-y-1">
@@ -59,7 +58,7 @@ export default function SignUp() {
                       id="email"
                       name="email"
                       placeholder="Enter your email"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6 placeholder-gray-500 focus:ring"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6 focus:ring"
                     />
                   </div>
                   <div className="space-y-1">
@@ -71,7 +70,7 @@ export default function SignUp() {
                       id="password"
                       name="password"
                       placeholder="Choose a strong password"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6 placeholder-gray-500 focus:ring"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6 focusg:ring"
                     />
                   </div>
                   <div className="space-y-1">
@@ -86,7 +85,7 @@ export default function SignUp() {
                       id="password_confirm"
                       name="password_confirm"
                       placeholder="Confirm your chosen password"
-                      className="block w-full rounded-lg text-custom-black px-5 py-3 leading-6 placeholder-gray-500 focus:ring"
+                      className="block w-full rounded-lg text-black px-5 py-3 leading-6 focus:ring"
                     />
                   </div>
                   <div className="flex items-center">
@@ -98,12 +97,7 @@ export default function SignUp() {
                     />
                     <span className="ml-2 text-sm font-medium">
                       I accept&nbsp;
-                      <a
-                        href="#"
-                        className="font-medium text-custom-gray underline hover:text-gray-500"
-                      >
-                        terms &amp; conditions
-                      </a>
+                      <Link to="/terms" className="font-medium text-gray-400 underline hover:text-gray-500">terms &amp; conditions</Link>
                     </span>
                   </div>
                   <div>
@@ -116,26 +110,16 @@ export default function SignUp() {
                   </div>
                 </form>
               </div>
-              <div className="grow bg-custom-black5 p-5 text-center text-sm md:px-16">
-                <a
-                  href="/signin"
-                  className="inline-block font-medium text-blue-600 hover:text-blue-400"
-                >
-                  Return to Sign In
-                </a>
+              <div className="grow bg-sign-dialog-footer-background p-5 text-center text-sm md:px-16">
+                <Link to="/signin" className="inline-block font-medium text-blue-600 hover:text-blue-400">Return to Sign In</Link>
               </div>
             </div>
             {/* END Sign Up Form */}
 
             {/* Footer */}
-            <div className="mt-6 text-center text-sm text-custom-gray">
-              Powered by{" "}
-              <a
-                href={siteUrl}
-                className="font-medium text-blue-600 hover:text-blue-400"
-              >
-                {appName}
-              </a>
+            <div className="mt-6 text-center text-sm text-gray-400">
+              Powered by&nbsp;
+              <Link to={siteUrl} className="font-medium text-blue-600 hover:text-blue-400">{appName}</Link>
             </div>
             {/* END Footer */}
           </section>
