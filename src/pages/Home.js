@@ -182,18 +182,15 @@ const Home = () => {
     <div className="flex h-screen">
       {/* Left Sidebar */}
       <div
-        className={`fixed inset-y-0 z-50 md:block md:w-1/4 lg:w-1/5 xl:w-1/4 2xl:w-1/4 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
+        className={`fixed inset-y-0 z-50 w-[35vw] xl:w-[19.03vw] bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
       >
         {/* Close button for mobile */}
         <div className="flex items-center justify-between md:hidden">
-          <i 
-            className="fas fa-times text-md cursor-pointer mb-2" 
-            onClick={() => setIsSidebarOpen(false)} 
-          ></i>
+          <i className="fas fa-times text-md cursor-pointer mb-2" onClick={() => setIsSidebarOpen(false)} ></i>
         </div>
 
         {/* App Icon, New Chat */}
-        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
+        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
           <div className="flex items-center">
             <img
               src={appIcon}
@@ -207,11 +204,11 @@ const Home = () => {
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto text-sm">
-          <h1 className="p-3 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
+          <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
           {chats.map((chat) => (
             <div
               key={chat.id}
-              className="p-3 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
+              className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
             >
               <h2 className="truncate mr-2">{chat.title}</h2>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
