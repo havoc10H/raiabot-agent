@@ -95,7 +95,13 @@ const Home = () => {
     }
   };
 
-  const suggestions = [
+  const mobileSuggestions = [
+    { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
+    { text: `Explain options trading`, description: `if I'm familiar with buying and selling` },
+  ];
+  
+
+  const webSuggestions = [
     { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
     { text: `Explain options trading`, description: `if I'm familiar with buying and selling` },
     { text: `Create a personal webapge for me`, description: `after asking me three questions` },
@@ -178,11 +184,46 @@ const Home = () => {
    
   }
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 1024);
+  };
+
+  useEffect(() => {
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+
+  const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
+
+  const [realHeight, setRealHeight] = useState(window.innerHeight);
+
+  const updateHeight = () => {
+    setRealHeight(window.innerHeight);
+  };
+
+  useEffect(() => {
+    // Set the initial height
+    updateHeight();
+    
+    // Add event listener to update height on resize
+    window.addEventListener('resize', updateHeight);
+    
+    // Clean up the event listener on component unmount
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
+
+
   return (
-    <div className="flex h-screen">
+    <div className="flex" style={{ height: realHeight }}>
       {/* Left Sidebar */}
       <div
-        className={`fixed inset-y-0 z-50 w-[35vw] xl:w-[19.03vw] bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
+        className={`fixed inset-y-0 z-50 w-3/4 md:w-1/3 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
       >
         {/* Close button for mobile */}
         <div className="flex items-center justify-between md:hidden">
@@ -314,12 +355,7 @@ const Home = () => {
         {/* Initial view with app icon*/}
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center flex-1">
-            <img
-              src={appIcon}
-              alt={appName}
-              className="w-12 h-12 my-3 rounded-full"
-            />
-            <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
+            
           </div>
         ) : (
           <>
@@ -337,27 +373,39 @@ const Home = () => {
           </>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col p-3 md:px-16">
+        <form onSubmit={handleSubmit} className="flex-shrink-0 flex flex-col p-3 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
-            <div className="grid lg:grid-cols-2 gap-3">
-              {suggestions.map((suggestion) => (
-                <div
-                  key={suggestion.text}
-                  className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
-                  onClick={() => { handleStartChat(suggestion.text) }}
-                >
-                  <div className="flex flex-col">
-                    <p className="text-sm font-medium text-white">{suggestion.text}</p> 
-                    <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
+            <div>
+              <div className="flex flex-col items-center justify-center mb-8">
+                <img
+                  src={appIcon}
+                  alt={appName}
+                  className="w-12 h-12 mb-2 rounded-full"
+                />
+                <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
+              </div>
+
+              <div className="grid lg:grid-cols-2 gap-3">
+                {suggestionsToDisplay.map((suggestion) => (
+                  <div
+                    key={suggestion.text}
+                    className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
+                    onClick={() => { handleStartChat(suggestion.text) }}
+                  >
+                    <div className="flex flex-col">
+                      <p className="text-sm font-medium text-white">{suggestion.text}</p> 
+                      <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
+                    </div>
+                    {/* Button only visible on hover */}
+                    <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
+                    </button>
                   </div>
-                  {/* Button only visible on hover */}
-                  <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
-                  </button>
+                ))}
                 </div>
-              ))}
             </div>
+           
           )}
 
           {/* Input Field and Submit Button in one row */}
@@ -369,11 +417,14 @@ const Home = () => {
               className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
               placeholder="Ask me anything ..."
             />
-            
             {/* Submit Button */}
             <button type="submit" className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
               <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
             </button>
+          </div>
+
+          <div className="flex items-center justify-center py-2">
+            <span class="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
           </div>
 
         </form>
