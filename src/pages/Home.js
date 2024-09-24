@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThreeDots } from 'react-loader-spinner'; // Import the loader
+import { ThreeDots } from 'react-loader-spinner';
+import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import qs from "qs";
 import OpenAI from 'openai';
 import config from '../config.json';
 
-const Home = () => {
+const Home = ({ setIsAuthenticated }) => {
   const appName = config.appName;
   const appIcon = config.appIcon;
 
@@ -114,6 +115,9 @@ const Home = () => {
   ];
   
   const handleStartNewChat = () => {
+    if (messages.length > 0) {
+      createThread();
+    }
     setMessage('');
     setMessages([]);
   };
@@ -211,7 +215,7 @@ const Home = () => {
     
     axios.request(requestConfig)
     .then((response) => {
-      console.log(response.data);
+      // console.log(response.data);
     })
     .catch((error) => {
       console.error(error.response ? error.response.data : error.message);
@@ -225,17 +229,24 @@ const Home = () => {
     }
 
     try {
+      const tempMessage = await openai.beta.threads.messages.create(
+        thread.id,
+        {
+          role: "user",
+          content: messageContent
+        }
+      );
+
       const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-          assistant_id: selectedEngine.openai_assistant_id,
-          instructions: messageContent // You can pass the same message or different instructions
+        assistant_id: selectedEngine.openai_assistant_id,
       });
 
       if (run.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(
+        const runningMessages = await openai.beta.threads.messages.list(
           run.thread_id
         );
 
-        const assistantMessage = messages.data.reverse().find(msg => msg.role === 'assistant');
+        const assistantMessage = runningMessages.data.reverse().find(msg => msg.role === 'assistant');
         
         if (assistantMessage) {
           const replyText = assistantMessage.content[0].text.value; // Extract the reply text
@@ -276,7 +287,7 @@ const Home = () => {
     
     axios.request(requestConfig)
     .then((response) => {
-      console.log(response);
+      // console.log(response);
     })
     .catch((error) => {
       console.error(error.response ? error.response.data : error.message);
@@ -295,12 +306,22 @@ const Home = () => {
     }
   }, [openai]);
   
-
   useEffect(() => {
     if (thread) {
       saveThread();
     }
   }, [thread]);
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
+    localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
+  
+    setIsAuthenticated(false);
+
+    navigate('/');
+  };
 
   return (
     <div className="flex" style={{ height: realHeight }}>
@@ -384,7 +405,9 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer"
+            onClick={() => handleLogout()} 
+          >
             <div className="flex items-center justify-center w-8 h-8 bg-custom-red rounded-full text-white">
               <span className="text-sm">{loginUsername.charAt(0).toUpperCase()}</span>
             </div>
@@ -461,7 +484,7 @@ const Home = () => {
           </>
         )}
 
-        <form onSubmit={handleSubmit} className="flex-shrink-0 flex flex-col p-3 md:px-16">
+        <div className="flex-shrink-0 flex flex-col p-3 md:px-16">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
             <div className="grid lg:grid-cols-2 gap-3">
@@ -485,42 +508,43 @@ const Home = () => {
           )}
 
 
-          {/* Show loader */}
-          {isLoading && (
-          <div className="loader">
-            <ThreeDots
-              height="32"
-              width="32"
-              radius="5"
-              color="grey"
-              ariaLabel="three-dots-loading"
-              wrapperStyle={{}}
-              wrapperClass=""
-              visible={true}
-            />
-          </div>
-          )} 
+          <form onSubmit={handleSubmit} >
+            {/* Show loader */}
+            {isLoading && (
+            <div className="loader">
+              <ThreeDots
+                height="32"
+                width="32"
+                radius="5"
+                color="grey"
+                ariaLabel="three-dots-loading"
+                wrapperStyle={{}}
+                wrapperClass=""
+                visible={true}
+              />
+            </div>
+            )} 
 
-          {/* Input Field and Submit Button in one row */}
-          <div className="flex items-center py-2 relative">
-            <input
-              type="text"
-              value={message} 
-              onChange={(e) => setMessage(e.target.value)} 
-              className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
-              placeholder="Ask me anything ..."
-            />
-            {/* Submit Button */}
-            <button type="submit" className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
-              <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
-            </button>
-          </div>
+            {/* Input Field and Submit Button in one row */}
+            <div className="flex items-center py-2 relative">
+              <input
+                type="text"
+                value={message} 
+                onChange={(e) => setMessage(e.target.value)} 
+                className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
+                placeholder="Ask me anything ..."
+              />
+              {/* Submit Button */}
+              <button type="submit" className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
+                <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
+              </button>
+            </div>
 
-          <div className="flex items-center justify-center py-2">
-            <span className="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
-          </div>
-
-        </form>
+            <div className="flex items-center justify-center py-2">
+              <span className="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

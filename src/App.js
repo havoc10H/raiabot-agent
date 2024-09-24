@@ -11,7 +11,7 @@ function App() {
 
   useEffect(() => {
       const checkAuth = () => {
-          setIsAuthenticated(!!localStorage.getItem('raia-loginKey'));
+        setIsAuthenticated(!!localStorage.getItem('raia-loginKey'));
       };
       checkAuth();
   }, []);
@@ -21,7 +21,7 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={isAuthenticated ? <Home /> : <Navigate to="/signin" />}
+          element={isAuthenticated ? <Home setIsAuthenticated={setIsAuthenticated} /> : <Navigate to="/signin" />}
         />
         <Route
             path="/signin"
