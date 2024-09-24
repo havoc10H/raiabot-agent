@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ThreeDots } from 'react-loader-spinner'; // Import the loader
 import axios from 'axios';
 import qs from "qs";
-import OpenAI from 'openai';
 import config from '../config.json';
 
 const Home = () => {
@@ -16,7 +14,6 @@ const Home = () => {
 
   const loginKey = localStorage.getItem('raia-loginKey');
   const loginUsername = localStorage.getItem('raia-loginUsername');
-
 
   const handleGetAgents = useCallback(() => {
     const data = qs.stringify({
@@ -70,8 +67,6 @@ const Home = () => {
   const handleEngineChange = (engine) => {
     setSelectedEngine(engine);
     toggleDropdown();
-
-  
   };
 
   const toggleDropdown = () => {
@@ -123,145 +118,17 @@ const Home = () => {
     handleStartChat(message);
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleStartChat = async (newMessage) => {
-    if (!newMessage.trim()) return; // Check if the message is empty or only whitespace
-
-    const newMessages = [...messages, { text: newMessage, sender: 'user' }];
-    setMessages(newMessages);
-    setMessage('');
-
-    setIsLoading(true);
-
-    try {
-      const replyMessage = await sendMessage(newMessage);
-  
-      if (replyMessage) { // Only add the reply message if it's not undefined
-        setMessages(prevMessages => [...prevMessages, { text: replyMessage, sender: 'assistant' }]);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Optionally handle error state here
-    } finally {
-      // Set loading state back to false after reply is received
-      setIsLoading(false);
-    }
-  }
-
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [realHeight, setRealHeight] = useState(window.innerHeight);
-
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 1024);
-    setRealHeight(window.innerHeight);
-  };
-
-  useEffect(() => {
-    handleResize(); // Initial check
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
-
-  const [openai, setOpenAI] = useState(null);
-  const [thread, setThread] = useState(null);
-
-  const createOpenAI = () => {
-    const openaiClient = new OpenAI({ 
-      apiKey: selectedEngine.openai_api_key,
-      dangerouslyAllowBrowser: true,
-    });
-    setOpenAI(openaiClient);
-  };
-
-  const createThread = async () => {
-    try {
-      const newThread = await openai.beta.threads.create({
-      });
-
-      setThread(newThread);
-    } catch (error) {
-      console.error("Error creating thread:", error);
-    }
-  };
-
-  const saveThread = async () => {
+  const handleSaveMessage = async (messageData, role, created_at, message_id) => {
     const data = qs.stringify({
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
-      'LOGINKEY': loginKey,
-      'thread_id': thread.id,
-      'assistant_id': selectedEngine.openai_assistant_id,
-      'created_at': thread.created_at,
-    });
-    
-    const requestConfig = {
-      method: 'post',
-      url: siteUrl + "/api/saveThread.cfm",
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      data: data,
-    };
-    
-    axios.request(requestConfig)
-    .then((response) => {
-      console.log(response.data);
-    })
-    .catch((error) => {
-      console.error(error.response ? error.response.data : error.message);
-    });
-  }
-
-  const sendMessage = async (messageContent) => {
-    if (!openai || !thread) {
-      console.error("OpenAI client is not initialized.");
-      return; // Exit if openai is null
-    }
-
-    try {
-      const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-          assistant_id: selectedEngine.openai_assistant_id,
-          instructions: messageContent // You can pass the same message or different instructions
-      });
-
-      if (run.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(
-          run.thread_id
-        );
-
-        const assistantMessage = messages.data.reverse().find(msg => msg.role === 'assistant');
-        
-        if (assistantMessage) {
-          const replyText = assistantMessage.content[0].text.value; // Extract the reply text
-          saveMessage(assistantMessage.id, assistantMessage.created_at, run.id, run.instructions, assistantMessage.role);
-          return replyText; // Return the reply text
-        }
-       
-      } else {
-        console.log(run.status);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
-  };
-
-  const saveMessage = async (message_id, created_at, run_id, message, role) => {
-    const data = qs.stringify({
-      'APIKEY': apiKey,
-      'SECRETKEY': secretKey,
-      'LOGINKEY': loginKey,
-      'thread_id': thread.id,
-      'assistant_id': selectedEngine.openai_assistant_id,
+      'loginKey': loginKey,
+      'thread_id': 0,
+      'assistant_id': 0,
       'message_id': message_id,
       'created_at': created_at,
-      'run_id': run_id,
-      'message': message,
+      'run_id': 0,
+      'message': messageData,
       'role': role,
     });
     
@@ -283,24 +150,59 @@ const Home = () => {
     });
   }
 
-  useEffect(() => {
-    if (selectedEngine) {
-      createOpenAI();
+  const handleStartChat = async (newMessage) => {
+    if (!newMessage.trim()) return; // Check if the message is empty or only whitespace
+
+    const newMessages = [...messages, { text: newMessage, sender: 'user' }];
+    setMessages(newMessages);
+    setMessage('');
+
+    try {
+      const response = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-3.5-turbo', // Specify the model
+          messages: [{ role: 'user', content: newMessage }],
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${selectedEngine.openai_api_key}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      console.log(response);
+      const responeData = response.data;
+      const replyMessage = responeData.choices[0].message.content;
+      setMessages([...newMessages, { text: replyMessage, sender: 'assistant' }]);
+
+      handleSaveMessage(newMessage, 'user', responeData.created, responeData.id);
+      handleSaveMessage(replyMessage, 'assistant', responeData.created, responeData.id);
+    } catch (error) {
+      console.error('Error fetching response:', error);
     }
-  }, [selectedEngine]);
+   
+  }
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [realHeight, setRealHeight] = useState(window.innerHeight);
+
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 1024);
+    setRealHeight(window.innerHeight);
+  };
 
   useEffect(() => {
-    if (openai) {
-      createThread();
-    }
-  }, [openai]);
-  
+    handleResize(); // Initial check
 
-  useEffect(() => {
-    if (thread) {
-      saveThread();
-    }
-  }, [thread]);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
+
 
   return (
     <div className="flex" style={{ height: realHeight }}>
@@ -484,23 +386,6 @@ const Home = () => {
             </div>
           )}
 
-
-          {/* Show loader */}
-          {isLoading && (
-          <div className="loader">
-            <ThreeDots
-              height="32"
-              width="32"
-              radius="5"
-              color="grey"
-              ariaLabel="three-dots-loading"
-              wrapperStyle={{}}
-              wrapperClass=""
-              visible={true}
-            />
-          </div>
-          )} 
-
           {/* Input Field and Submit Button in one row */}
           <div className="flex items-center py-2 relative">
             <input
@@ -517,7 +402,7 @@ const Home = () => {
           </div>
 
           <div className="flex items-center justify-center py-2">
-            <span className="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
+            <span class="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
           </div>
 
         </form>
