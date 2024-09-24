@@ -71,7 +71,7 @@ const Home = () => {
     setSelectedEngine(engine);
     toggleDropdown();
 
-  
+    handleStartNewChat();
   };
 
   const toggleDropdown = () => {
