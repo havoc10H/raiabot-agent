@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
@@ -18,8 +18,15 @@ const Home = ({ setIsAuthenticated }) => {
   const loginKey = localStorage.getItem('raia-loginKey');
   const loginUsername = localStorage.getItem('raia-loginUsername');
 
+  const hasFetched = useRef(false); // Create a ref to track fetch status
 
-  const handleGetAgents = useCallback(() => {
+  const handleGetAgents = () => {
+    if (!hasFetched.current) {
+      hasFetched.current = true; // Set the flag to true
+    } else {
+      return;
+    }
+    
     const data = qs.stringify({
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -34,7 +41,7 @@ const Home = ({ setIsAuthenticated }) => {
       },
       data: data,
     };
-    
+
     axios.request(requestConfig)
     .then((response) => {
       const fetchedEngines = response.data;
@@ -47,11 +54,11 @@ const Home = ({ setIsAuthenticated }) => {
     .catch((error) => {
       console.error(error.response ? error.response.data : error.message);
     });
-  }, [apiKey, secretKey, loginKey, siteUrl]); // Dependencies
+  }; 
 
   useEffect(() => {
     handleGetAgents();
-  }, [handleGetAgents]); 
+  }, []); 
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -130,27 +137,16 @@ const Home = ({ setIsAuthenticated }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartChat = async (newMessage) => {
-    if (!newMessage.trim()) return; // Check if the message is empty or only whitespace
-
     const newMessages = [...messages, { text: newMessage, sender: 'user' }];
     setMessages(newMessages);
     setMessage('');
 
     setIsLoading(true);
 
-    try {
-      const replyMessage = await sendMessage(newMessage);
-  
-      if (replyMessage) { // Only add the reply message if it's not undefined
-        setMessages(prevMessages => [...prevMessages, { text: replyMessage, sender: 'assistant' }]);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Optionally handle error state here
-    } finally {
-      // Set loading state back to false after reply is received
-      setIsLoading(false);
-    }
+    const replyMessage = await sendMessage(newMessage);
+    setMessages(prevMessages => [...prevMessages, { text: replyMessage, sender: 'assistant' }]);
+
+    setIsLoading(false);
   }
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -161,14 +157,7 @@ const Home = ({ setIsAuthenticated }) => {
     setRealHeight(window.innerHeight);
   };
 
-  useEffect(() => {
-    handleResize(); // Initial check
-
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  window.addEventListener('resize', handleResize);
 
   const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
 
@@ -185,8 +174,7 @@ const Home = ({ setIsAuthenticated }) => {
 
   const createThread = async () => {
     try {
-      const newThread = await openai.beta.threads.create({
-      });
+      const newThread = await openai.beta.threads.create({ });
 
       setThread(newThread);
     } catch (error) {
@@ -229,7 +217,7 @@ const Home = ({ setIsAuthenticated }) => {
     }
 
     try {
-      const tempMessage = await openai.beta.threads.messages.create(
+      await openai.beta.threads.messages.create(
         thread.id,
         {
           role: "user",
@@ -250,9 +238,10 @@ const Home = ({ setIsAuthenticated }) => {
           .filter(msg => msg.role === 'assistant')
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 
-          if (assistantMessage) {
+        if (assistantMessage) {
+          saveMessage(assistantMessage.id, assistantMessage.created_at, run.id, messageContent, assistantMessage.role);
+
           const replyText = assistantMessage.content[0].text.value; // Extract the reply text
-          saveMessage(assistantMessage.id, assistantMessage.created_at, run.id, run.instructions, assistantMessage.role);
           return replyText; // Return the reply text
         }
        
@@ -264,7 +253,7 @@ const Home = ({ setIsAuthenticated }) => {
     }
   };
 
-  const saveMessage = async (message_id, created_at, run_id, message, role) => {
+  const saveMessage = async (message_id, created_at, run_id, messageContent, role) => {
     const data = qs.stringify({
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -274,7 +263,7 @@ const Home = ({ setIsAuthenticated }) => {
       'message_id': message_id,
       'created_at': created_at,
       'run_id': run_id,
-      'message': message,
+      'message': messageContent,
       'role': role,
     });
     
@@ -512,20 +501,7 @@ const Home = ({ setIsAuthenticated }) => {
 
           <form onSubmit={handleSubmit} >
             {/* Show loader */}
-            {isLoading && (
-            <div className="loader">
-              <ThreeDots
-                height="32"
-                width="32"
-                radius="5"
-                color="grey"
-                ariaLabel="three-dots-loading"
-                wrapperStyle={{}}
-                wrapperClass=""
-                visible={true}
-              />
-            </div>
-            )} 
+            {isLoading && <ThreeDots height="32" width="32" color="grey" />} 
 
             {/* Input Field and Submit Button in one row */}
             <div className="flex items-center py-2 relative">
@@ -533,11 +509,12 @@ const Home = ({ setIsAuthenticated }) => {
                 type="text"
                 value={message} 
                 onChange={(e) => setMessage(e.target.value)} 
+                disabled={isLoading}
                 className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
                 placeholder="Ask me anything ..."
               />
               {/* Submit Button */}
-              <button type="submit" className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
+              <button type="submit" disabled={isLoading || !message.trim()} className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
                 <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
               </button>
             </div>
