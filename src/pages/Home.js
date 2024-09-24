@@ -246,9 +246,11 @@ const Home = ({ setIsAuthenticated }) => {
           run.thread_id
         );
 
-        const assistantMessage = runningMessages.data.reverse().find(msg => msg.role === 'assistant');
-        
-        if (assistantMessage) {
+        const assistantMessage = runningMessages.data
+          .filter(msg => msg.role === 'assistant')
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+          if (assistantMessage) {
           const replyText = assistantMessage.content[0].text.value; // Extract the reply text
           saveMessage(assistantMessage.id, assistantMessage.created_at, run.id, run.instructions, assistantMessage.role);
           return replyText; // Return the reply text

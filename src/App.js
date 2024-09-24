@@ -10,10 +10,10 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('raia-loginKey'));
 
   useEffect(() => {
-      const checkAuth = () => {
-        setIsAuthenticated(!!localStorage.getItem('raia-loginKey'));
-      };
-      checkAuth();
+    const checkAuth = () => {
+      setIsAuthenticated(!!localStorage.getItem('raia-loginKey'));
+    };
+    checkAuth();
   }, []);
 
   return (
