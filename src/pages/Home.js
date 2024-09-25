@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
-import axios from 'axios';
-import qs from "qs";
 import OpenAI from 'openai';
 import config from '../config.json';
+import AxiosPostRequest from '../api/AxiosPostRequest'; // Import your axiosPostRequest function
 
 const Home = ({ setIsAuthenticated }) => {
-  const appName = config.appName;
-  const appIcon = config.appIcon;
-
   const siteUrl = config.siteUrl;
 
   const apiKey  = config.apiKey;
@@ -18,42 +14,34 @@ const Home = ({ setIsAuthenticated }) => {
   const loginKey = localStorage.getItem('raia-loginKey');
   const loginUsername = localStorage.getItem('raia-loginUsername');
 
-  const hasFetched = useRef(false); // Create a ref to track fetch status
+  const hasAgentsFetched = useRef(false); // Create a ref to track fetch status
 
-  const handleGetAgents = () => {
-    if (!hasFetched.current) {
-      hasFetched.current = true; // Set the flag to true
+  const [agents, setAgents] = useState([]);
+  const [selectedAgent, setSelectedAgent] = useState();
+  
+  const handleGetAgents = async () => {
+    if (!hasAgentsFetched.current) {
+      hasAgentsFetched.current = true; // Set the flag to true
     } else {
       return;
     }
     
-    const data = qs.stringify({
+    const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
       'loginKey': loginKey,
-    });
-    
-    const requestConfig = {
-      method: 'post',
-      url: siteUrl + "/api/getAgents.cfm",
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      data: data,
     };
-
-    axios.request(requestConfig)
-    .then((response) => {
-      const fetchedEngines = response.data;
-
-      if (fetchedEngines && fetchedEngines.length > 0) {
-        setEngines(fetchedEngines); // Set the fetched engines
-        setSelectedEngine(fetchedEngines[0]); // Set the first engine as the selected engine
+    
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/getAgents.cfm`, data);
+      if (response.Agents && response.Agents.length > 0) {
+        setAgents(response.Agents);
+        setSelectedAgent(response.Agents[0]);
       }
-    })
-    .catch((error) => {
-      console.error(error.response ? error.response.data : error.message);
-    });
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+    }
+    
   }; 
 
   useEffect(() => {
@@ -70,13 +58,11 @@ const Home = ({ setIsAuthenticated }) => {
   ]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const [engines, setEngines] = useState([]);
-
-  const [selectedEngine, setSelectedEngine] = useState();
+ 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const handleEngineChange = (engine) => {
-    setSelectedEngine(engine);
+  const handleAgentChange = (agent) => {
+    setSelectedAgent(agent);
     toggleDropdown();
 
     handleStartNewChat();
@@ -108,23 +94,15 @@ const Home = ({ setIsAuthenticated }) => {
     }
   };
 
-  const mobileSuggestions = [
-    { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
-    { text: `Explain options trading`, description: `if I'm familiar with buying and selling` },
-  ];
-  
-
-  const webSuggestions = [
-    { text: `Suggest some codenames`, description: `for a project introducing flexible work` },
-    { text: `Explain options trading`, description: `if I'm familiar with buying and selling` },
-    { text: `Create a personal webapge for me`, description: `after asking me three questions` },
-    { text: `Suggest fun activities`, description: `for a family of 4 to do indoors` },
-  ];
+  const [mobileSuggestions, setMobileSuggestions] = useState([]);
+  const [webSuggestions, setWebSuggestions] = useState([]);
+  const [mobileSuggestionDescs, setMobileSuggestionDescs] = useState([]);
+  const [webSuggestionDescs, setWebSuggestionDescs] = useState([]);
   
   const handleStartNewChat = () => {
-    if (messages.length > 0) {
-      createThread();
-    }
+    // if (messages.length > 0) {
+    //   createThread();
+    // }
     setMessage('');
     setMessages([]);
   };
@@ -137,14 +115,14 @@ const Home = ({ setIsAuthenticated }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartChat = async (newMessage) => {
-    const newMessages = [...messages, { text: newMessage, sender: 'user' }];
+    const newMessages = [...messages, { text: newMessage, role: 'user' }];
     setMessages(newMessages);
     setMessage('');
 
     setIsLoading(true);
 
     const replyMessage = await sendMessage(newMessage);
-    setMessages(prevMessages => [...prevMessages, { text: replyMessage, sender: 'assistant' }]);
+    setMessages(prevMessages => [...prevMessages, { text: replyMessage, role: 'assistant' }]);
 
     setIsLoading(false);
   }
@@ -160,88 +138,134 @@ const Home = ({ setIsAuthenticated }) => {
   window.addEventListener('resize', handleResize);
 
   const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
+  const suggestionDescsToDisplay = isMobile ? mobileSuggestionDescs : webSuggestionDescs;
 
   const [openai, setOpenAI] = useState(null);
   const [thread, setThread] = useState(null);
 
   const createOpenAI = () => {
     const openaiClient = new OpenAI({ 
-      apiKey: selectedEngine.openai_api_key,
+      apiKey: selectedAgent.openai_api_key,
       dangerouslyAllowBrowser: true,
     });
     setOpenAI(openaiClient);
   };
 
+  const [threadList, setThreadList] = useState(null);
+
+  const getThreadsList = async () => {
+    const data = {
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+      'assistant_id': selectedAgent.openai_assistant_id,
+    };
+
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/getThreads.cfm`, data);
+      const filteredAndSortedResponse = Array.isArray(response)
+      ? response
+          .filter(thread => thread.message !== "")  // Filter out empty messages
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by created_at, latest first
+      : [];
+      console.log(filteredAndSortedResponse);
+
+      setThreadList(filteredAndSortedResponse);
+
+    } catch (error) {
+      console.error(error.response ? error.response.data : error.message);
+    }
+  }
+
   const createThread = async () => {
     try {
       const newThread = await openai.beta.threads.create({ });
-
       setThread(newThread);
+      saveThread(newThread);
+      return newThread;
     } catch (error) {
       console.error("Error creating thread:", error);
     }
   };
 
-  const saveThread = async () => {
-    const data = qs.stringify({
+  const saveThread = async (newThread) => {
+    const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
       'LOGINKEY': loginKey,
-      'thread_id': thread.id,
-      'assistant_id': selectedEngine.openai_assistant_id,
-      'created_at': thread.created_at,
-    });
-    
-    const requestConfig = {
-      method: 'post',
-      url: siteUrl + "/api/saveThread.cfm",
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      data: data,
+      'thread_id': newThread.id,
+      'assistant_id': selectedAgent.openai_assistant_id,
+      'created_at': newThread.created_at,
     };
-    
-    axios.request(requestConfig)
-    .then((response) => {
-      // console.log(response.data);
-    })
-    .catch((error) => {
+
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/saveThread.cfm`, data);
+      console.log(response); // Now response will contain the parsed data
+    } catch (error) {
       console.error(error.response ? error.response.data : error.message);
-    });
+    }
   }
 
-  const sendMessage = async (messageContent) => {
-    if (!openai || !thread) {
+  const openThread = async (selectedThread) => {
+    selectedThread.id = selectedThread.thread_id;
+
+    setThread(selectedThread);
+    getMessageList(selectedThread.thread_id);
+  }
+
+  const getMessageList = async (thread_id) => {
+    const threadMessages = await openai.beta.threads.messages.list(
+      thread_id, 
+      {
+        order: "asc" // Assuming 'desc' orders messages from latest to oldest
+      }
+    );
+
+    const formattedMessages = threadMessages.data.map((message, index) => ({
+      text: message.content[0].text.value,  // Access the text value
+      role: message.role                     // Access the role
+    }));
+
+    setMessages(formattedMessages);
+  }
+
+  const sendMessage = async (userMessageContent) => {
+    if (!openai) {
       console.error("OpenAI client is not initialized.");
       return; // Exit if openai is null
     }
 
+    const currentThread = thread || await createThread();
+
+    console.log(currentThread);
+
     try {
-      await openai.beta.threads.messages.create(
-        thread.id,
+      const userMessage = await openai.beta.threads.messages.create(currentThread.id,
         {
           role: "user",
-          content: messageContent
+          content: userMessageContent
         }
       );
 
-      const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-        assistant_id: selectedEngine.openai_assistant_id,
+      const run = await openai.beta.threads.runs.createAndPoll(currentThread.id, {
+        assistant_id: selectedAgent.openai_assistant_id,
       });
 
       if (run.status === 'completed') {
-        const runningMessages = await openai.beta.threads.messages.list(
-          run.thread_id
+        const assistantMessage = await openai.beta.threads.messages.list(run.thread_id, 
+          {
+            limit: 1,
+            order: "desc" // Assuming 'desc' orders messages from latest to oldest
+          }
         );
-
-        const assistantMessage = runningMessages.data
-          .filter(msg => msg.role === 'assistant')
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
-
+        
         if (assistantMessage) {
-          saveMessage(assistantMessage.id, assistantMessage.created_at, run.id, messageContent, assistantMessage.role);
+          saveMessage(currentThread.id, run.id, userMessage.id, userMessage.created_at, userMessageContent, userMessage.role);
 
-          const replyText = assistantMessage.content[0].text.value; // Extract the reply text
+          const assistantMessageData = assistantMessage.data[0];
+          const replyText = assistantMessageData.content[0].text.value; 
+          saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, replyText, assistantMessageData.role);
+
           return replyText; // Return the reply text
         }
        
@@ -253,55 +277,68 @@ const Home = ({ setIsAuthenticated }) => {
     }
   };
 
-  const saveMessage = async (message_id, created_at, run_id, messageContent, role) => {
-    const data = qs.stringify({
+  const saveMessage = async (thread_id, run_id, message_id, message_created_at, messageContent, role) => {
+    const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
       'LOGINKEY': loginKey,
-      'thread_id': thread.id,
-      'assistant_id': selectedEngine.openai_assistant_id,
+      'thread_id': thread_id,
+      'assistant_id': selectedAgent.openai_assistant_id,
       'message_id': message_id,
-      'created_at': created_at,
+      'created_at': message_created_at,
       'run_id': run_id,
       'message': messageContent,
       'role': role,
-    });
-    
-    const requestConfig = {
-      method: 'post',
-      url: siteUrl + "/api/saveMessage.cfm",
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      data: data,
     };
-    
-    axios.request(requestConfig)
-    .then((response) => {
-      // console.log(response);
-    })
-    .catch((error) => {
+
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/saveMessage.cfm`, data);
+      console.log(response); // Now response will contain the parsed data
+    } catch (error) {
       console.error(error.response ? error.response.data : error.message);
-    });
+    }
   }
 
+  const extractSuggestions = (agent) => {
+    const starters = [];
+    const descriptions = [];
+
+    for (let i = 1; i <= 4; i++) {
+        const starter = agent[`ConversationStarter${i}`];
+        const desc = agent[`ConversationStarter${i}_desc`];
+
+        if (starter) starters.push(starter);
+        if (desc) descriptions.push(desc);
+    }
+
+    return { starters, descriptions };
+};
+
   useEffect(() => {
-    if (selectedEngine) {
+    if (selectedAgent) {
+      const { starters: conversationStarters, descriptions: conversationStartersDesc } = extractSuggestions(selectedAgent);
+
+      setMobileSuggestions(conversationStarters.slice(0, 2));
+      setMobileSuggestionDescs(conversationStartersDesc.slice(0, 2));
+
+      setWebSuggestions(conversationStarters);
+      setWebSuggestionDescs(conversationStartersDesc);
+
       createOpenAI();
     }
-  }, [selectedEngine]);
+  }, [selectedAgent]);
 
   useEffect(() => {
     if (openai) {
-      createThread();
+      getThreadsList();
     }
   }, [openai]);
   
-  useEffect(() => {
-    if (thread) {
-      saveThread();
-    }
-  }, [thread]);
+  // useEffect(() => {
+  //   if (thread) {
+  //     saveThread();
+  //   }
+  // }, [thread]);
 
   const navigate = useNavigate();
 
@@ -327,59 +364,72 @@ const Home = ({ setIsAuthenticated }) => {
 
         {/* App Icon, New Chat */}
         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
+          {selectedAgent && (
           <div className="flex items-center">
-            <img
-              src={appIcon}
-              alt={appName}
-              className="w-7 h-7 rounded-full mr-2"
-            />
-            <p className="text-sm font-medium text-white">{selectedEngine?selectedEngine.name:''}</p>
+            <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-7 h-7 rounded-full mr-2" />
+            <p className="text-sm font-medium text-white">{selectedAgent.alias}</p>
+            <h1 className="text-white md:mb-8 text-2xl text-medium">{selectedAgent.ali}</h1>
           </div>
+          )}
           <i className="fas fa-pencil-alt text-md" style={{ width: '18px', height: '18px' }}></i>
         </div>
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto text-sm">
           <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
-          {chats.map((chat) => (
-            <div
-              key={chat.id}
-              className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
-            >
-              <h2 className="truncate mr-2">{chat.title}</h2>
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
-                <i className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => toggleHistoryDropdown(chat.id)}></i>
-                <i className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" style={{ width: '18px', height: '18px' }} onClick={() => handleDelete(chat.id)}></i>
+          {threadList && threadList.length > 0 ? (
+            threadList.map((oneThread) => (
+              <div
+                key={oneThread.thread_id}  // Ensure unique key from oneThread
+                onClick={() => openThread(oneThread)}
+                className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
+              >
+                <h2 className="truncate mr-2">{oneThread.message}</h2>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
+                  <i 
+                    className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2" 
+                    style={{ width: '18px', height: '18px' }} 
+                    onClick={() => toggleHistoryDropdown(oneThread.thread_id)}
+                  ></i>
+                  <i 
+                    className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" 
+                    style={{ width: '18px', height: '18px' }} 
+                    onClick={() => handleDelete(oneThread.thread_id)}
+                  ></i>
 
-                {/* Dropdown Menu */}
-                {historyDropdownOpen === chat.id && (
-                  <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
-                    <div
-                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
-                      onClick={() => handleShare(chat.id)}
-                    >
-                      <i className="fas fa-upload icon-md" style={{ width: '18px', height: '18px' }}></i>
-                      <span>Share</span>
+                  {/* Dropdown Menu */}
+                  {historyDropdownOpen === oneThread.thread_id && (
+                    <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
+                      <div
+                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
+                        onClick={() => handleShare(oneThread.thread_id)}
+                      >
+                        <i className="fas fa-upload icon-md" style={{ width: '18px', height: '18px' }}></i>
+                        <span>Share</span>
+                      </div>
+                      <div
+                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
+                        onClick={() => handleRename(oneThread.thread_id)}
+                      >
+                        <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                        <span>Rename</span>
+                      </div>
+                      <div
+                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
+                        onClick={() => handleDelete(oneThread.thread_id)}
+                      >
+                        <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                        <span>Delete</span>
+                      </div>
                     </div>
-                    <div
-                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
-                      onClick={() => handleRename(chat.id)}
-                    >
-                      <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
-                      <span>Rename</span>
-                    </div>
-                    <div
-                      className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
-                      onClick={() => handleDelete(chat.id)}
-                    >
-                      <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
-                      <span>Delete</span>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className="p-2 text-sm font-normal text-custom-text-gray">No conversations</div> // Optional message for empty state
+          )}
+
         </div>
 
         {/* User Info at the bottom */}
@@ -416,11 +466,11 @@ const Home = ({ setIsAuthenticated }) => {
           <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
           <div className="relative flex-1 flex justify-center md:justify-start" >
-            {selectedEngine && (
+            {selectedAgent && (
             <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" onClick={toggleDropdown}>
-              <span className="text-lg font-semibold">{selectedEngine.alias}</span>
+              <span className="text-lg font-semibold">{selectedAgent.alias}</span>
               <span className="text-engine-version-text pl-2">
-                {selectedEngine.version}
+                {/* {selectedAgent.version} */}
                 <i className="fas fa-chevron-down text-token-text-tertiary pl-2 text-xs"></i>
               </span>
             </div>
@@ -428,17 +478,17 @@ const Home = ({ setIsAuthenticated }) => {
             {isDropdownOpen && (
             <div className="absolute mt-14 2xl:w-[400px] md:w-[45vw] lg:w-[45vw] xl:w-[25vw] bg-threeoptions-background rounded-lg max-h-48 overflow-y-auto">
               
-              {engines.map((engine) => (
+              {agents.map((agent) => (
               <div
-                key={engine.name}
+                key={agent.apikey}
                 className="p-3 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
-                onClick={() => handleEngineChange(engine)}
+                onClick={() => handleAgentChange(agent)}
               >
                 <div className="text-sm font-medium">
-                  <p>{engine.name}</p>
-                  <p className="text-engine-version-text">{engine.description}</p>
+                  <p>{agent.name}</p>
+                  <p className="text-agent-version-text">{agent.description}</p>
                 </div>
-                {selectedEngine.name === engine.name && <i className="fas fa-check-circle text-white flex-shrink-0"></i>}
+                {selectedAgent.apikey === agent.apikey && <i className="fas fa-check-circle text-white flex-shrink-0"></i>}
               </div>
               ))}
 
@@ -451,22 +501,22 @@ const Home = ({ setIsAuthenticated }) => {
 
         {/* Initial view with app icon*/}
         {messages.length === 0 ? (
+          <>
+          {selectedAgent && (
           <div className="flex flex-col items-center justify-center flex-1">
-            <img
-              src={appIcon}
-              alt={appName}
-              className="w-12 h-12 mb-2 rounded-full"
-            />
-            <h1 className="text-white md:mb-8 text-2xl text-medium">How can I help you today?</h1>
+            <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-12 h-12 mb-2 rounded-full" />
+            <h1 className="text-white md:mb-8 text-2xl text-medium md:px-16">{selectedAgent.intro}</h1>
           </div>
+          )}
+          </>
         ) : (
           <>
             {/* Chat Messages Area */}
             <div className="flex-1 p-3 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
-                <div key={index} className={`mb-3 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                <div key={index} className={`mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                   <p className={`inline-block p-3 rounded-xl 
-                    ${msg.sender === 'user' ? 'bg-custom-hover-gray3 text-white' : 'text-white border border-suggestion-border mr-16'}`}>
+                    ${msg.role === 'user' ? 'bg-custom-hover-gray3 text-white' : 'text-white border border-suggestion-border mr-16'}`}>
                     {msg.text}
                   </p>
                 </div>
@@ -479,15 +529,15 @@ const Home = ({ setIsAuthenticated }) => {
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
             <div className="grid lg:grid-cols-2 gap-3">
-              {suggestionsToDisplay.map((suggestion) => (
+              {suggestionsToDisplay.map((suggestion, index) => (
               <div
-                key={suggestion.text}
+                key={suggestion}
                 className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
-                onClick={() => { handleStartChat(suggestion.text) }}
+                onClick={() => { handleStartChat(suggestion) }}
               >
                 <div className="flex flex-col">
-                  <p className="text-sm font-medium text-white">{suggestion.text}</p> 
-                  <p className="text-sm font-medium text-suggestion-decription-text">{suggestion.description}</p>
+                  <p className="text-sm font-medium text-white">{suggestion}</p> 
+                  <p className="text-sm font-medium text-suggestion-decription-text">{suggestionDescsToDisplay[index]}</p>
                 </div>
                 {/* Button only visible on hover */}
                 <button className="ml-2 p-3 bg-main-background text-white rounded-md flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">

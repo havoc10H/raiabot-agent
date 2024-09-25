@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
@@ -8,20 +8,31 @@ import config from './config.json'; // Import your config file
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 const Main = () => {
+  
+  const hasFetched = useRef(false); // Create a ref to track fetch status
+
   useEffect(() => {
-    document.title = config.appName; // Set the title from config.json
+    if (!hasFetched.current) {
+      hasFetched.current = true; // Set the flag to true
 
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute("content", config.description);
+      document.title = config.appName; // Set the title from config.json
+
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute("content", config.description);
+      }
+
+      const iconHref = document.querySelector('link[rel="icon"]');
+      if (iconHref) {
+        iconHref.setAttribute("href", config.appIcon);
+      }
     }
-
-    document.body.style.backgroundColor = "#171717"; // Set the background color here
 
   }, []);
 
   return <App />;
 };
+
 root.render(
   <React.StrictMode>
     <Main />

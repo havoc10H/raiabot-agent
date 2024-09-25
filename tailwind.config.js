@@ -15,7 +15,7 @@ module.exports = {
         'delete-color': '#C74444',
         'custom-red': '#EC407A',
         'main-background': '#212121',
-        'engine-version-text': '#B4B4B4',
+        'agent-version-text': '#B4B4B4',
         'custom-hover-gray4': '#2F2F2F',
         'custom-hover-gray5': '#424242',
         'suggestion-border': '#4E4E4E',
