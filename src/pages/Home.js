@@ -3,7 +3,7 @@ import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
 import OpenAI from 'openai';
 import config from '../config.json';
-import AxiosPostRequest from '../api/AxiosPostRequest'; // Import your axiosPostRequest function
+import AxiosPostRequest from '../api/AxiosPostRequest'; 
 
 const Home = ({ setIsAuthenticated }) => {
   const siteUrl = config.siteUrl;
@@ -14,10 +14,12 @@ const Home = ({ setIsAuthenticated }) => {
   const loginKey = localStorage.getItem('raia-loginKey');
   const loginUsername = localStorage.getItem('raia-loginUsername');
 
-  const hasAgentsFetched = useRef(false); // Create a ref to track fetch status
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [agents, setAgents] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState();
+
+  const hasAgentsFetched = useRef(false); // Create a ref to track fetch status
   
   const handleGetAgents = async () => {
     if (!hasAgentsFetched.current) {
@@ -50,15 +52,8 @@ const Home = ({ setIsAuthenticated }) => {
 
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [chats, setChats] = useState([
-    { id: 1, title: 'Web Development' },
-    { id: 2, title: 'Software Development Practices' },
-    { id: 3, title: 'Mobile Development' },
-    { id: 4, title: 'Project Management' },
-  ]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
- 
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleAgentChange = (agent) => {
@@ -88,9 +83,9 @@ const Home = ({ setIsAuthenticated }) => {
     // Implement rename functionality
   };
 
-  const handleDelete = (chatId) => {
+  const handleDeleteThread = (thread_id) => {
     if (window.confirm("Are you sure you want to delete this chat?")) {
-      setChats(chats.filter(chat => chat.id !== chatId));
+      setThreadList(threadList.filter(oneThread => oneThread.thread_id !== thread_id));
     }
   };
 
@@ -100,9 +95,7 @@ const Home = ({ setIsAuthenticated }) => {
   const [webSuggestionDescs, setWebSuggestionDescs] = useState([]);
   
   const handleStartNewChat = () => {
-    // if (messages.length > 0) {
-    //   createThread();
-    // }
+    setIsSidebarOpen(false);
     setMessage('');
     setMessages([]);
   };
@@ -168,8 +161,6 @@ const Home = ({ setIsAuthenticated }) => {
           .filter(thread => thread.message !== "")  // Filter out empty messages
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by created_at, latest first
       : [];
-      console.log(filteredAndSortedResponse);
-
       setThreadList(filteredAndSortedResponse);
 
     } catch (error) {
@@ -182,6 +173,7 @@ const Home = ({ setIsAuthenticated }) => {
       const newThread = await openai.beta.threads.create({ });
       setThread(newThread);
       saveThread(newThread);
+
       return newThread;
     } catch (error) {
       console.error("Error creating thread:", error);
@@ -211,6 +203,8 @@ const Home = ({ setIsAuthenticated }) => {
 
     setThread(selectedThread);
     getMessageList(selectedThread.thread_id);
+
+    setIsSidebarOpen(false);
   }
 
   const getMessageList = async (thread_id) => {
@@ -237,7 +231,19 @@ const Home = ({ setIsAuthenticated }) => {
 
     const currentThread = thread || await createThread();
 
-    console.log(currentThread);
+    if (messages.length === 0) {
+      setThreadList((prevThreadList) => {
+        const threadWithId = {
+          ...currentThread,
+          thread_id: currentThread.id, // Set thread_id to the same value as id
+          message: userMessageContent
+        };
+
+        const updatedThreadList = [...prevThreadList, threadWithId];
+    
+        return updatedThreadList.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      });
+    }
 
     try {
       const userMessage = await openai.beta.threads.messages.create(currentThread.id,
@@ -334,12 +340,6 @@ const Home = ({ setIsAuthenticated }) => {
     }
   }, [openai]);
   
-  // useEffect(() => {
-  //   if (thread) {
-  //     saveThread();
-  //   }
-  // }, [thread]);
-
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -357,28 +357,25 @@ const Home = ({ setIsAuthenticated }) => {
       <div
         className={`fixed inset-y-0 z-50 w-3/4 md:w-1/3 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
       >
-        {/* Close button for mobile */}
-        <div className="flex items-center justify-between md:hidden">
-          <i className="fas fa-times text-md cursor-pointer mb-2" onClick={() => setIsSidebarOpen(false)} ></i>
-        </div>
-
         {/* App Icon, New Chat */}
-        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" onClick={handleStartNewChat}>
+        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" >
+          <i className="fas fas fa-bars cursor-pointer md:hidden text-md" style={{ width: '18px', height: '18px' }} onClick={() => setIsSidebarOpen(false)}></i>
           {selectedAgent && (
           <div className="flex items-center">
             <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-7 h-7 rounded-full mr-2" />
             <p className="text-sm font-medium text-white">{selectedAgent.alias}</p>
-            <h1 className="text-white md:mb-8 text-2xl text-medium">{selectedAgent.ali}</h1>
           </div>
           )}
-          <i className="fas fa-pencil-alt text-md" style={{ width: '18px', height: '18px' }}></i>
+          <i className="fas fa-pencil-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }} onClick={handleStartNewChat}></i>
         </div>
 
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto text-sm">
           <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
           {threadList && threadList.length > 0 ? (
-            threadList.map((oneThread) => (
+            threadList
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by created_at, latest first
+            .map((oneThread) => (
               <div
                 key={oneThread.thread_id}  // Ensure unique key from oneThread
                 onClick={() => openThread(oneThread)}
@@ -394,7 +391,7 @@ const Home = ({ setIsAuthenticated }) => {
                   <i 
                     className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" 
                     style={{ width: '18px', height: '18px' }} 
-                    onClick={() => handleDelete(oneThread.thread_id)}
+                    onClick={() => handleDeleteThread(oneThread.thread_id)}
                   ></i>
 
                   {/* Dropdown Menu */}
@@ -416,7 +413,7 @@ const Home = ({ setIsAuthenticated }) => {
                       </div>
                       <div
                         className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
-                        onClick={() => handleDelete(oneThread.thread_id)}
+                        onClick={() => handleDeleteThread(oneThread.thread_id)}
                       >
                         <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
                         <span>Delete</span>
@@ -505,7 +502,7 @@ const Home = ({ setIsAuthenticated }) => {
           {selectedAgent && (
           <div className="flex flex-col items-center justify-center flex-1">
             <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-12 h-12 mb-2 rounded-full" />
-            <h1 className="text-white md:mb-8 text-2xl text-medium md:px-16">{selectedAgent.intro}</h1>
+            <h1 className="text-white md:mb-8 text-2xl text-medium p-3 md:px-16">{selectedAgent.intro}</h1>
           </div>
           )}
           </>
@@ -514,9 +511,9 @@ const Home = ({ setIsAuthenticated }) => {
             {/* Chat Messages Area */}
             <div className="flex-1 p-3 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
-                <div key={index} className={`mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                  <p className={`inline-block p-3 rounded-xl 
-                    ${msg.role === 'user' ? 'bg-custom-hover-gray3 text-white' : 'text-white border border-suggestion-border mr-16'}`}>
+                <div key={index} className={`mb-3 flex justify-${msg.role === 'user' ? 'end' : 'start'}`}>
+                  <p className={`inline-block p-3 rounded-xl text-white max-w-1/3
+                    ${msg.role === 'user' ? 'bg-custom-hover-gray3 ml-16' : 'border border-suggestion-border mr-16'}`}>
                     {msg.text}
                   </p>
                 </div>

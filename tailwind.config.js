@@ -20,7 +20,7 @@ module.exports = {
         'custom-hover-gray5': '#424242',
         'suggestion-border': '#4E4E4E',
         'suggestion-decription-text': '#828282',
-        'button-background': '#383838',
+        'button-background': '#C4C4C4',
         'sign-background': '#111827',
         'sign-dialog-background': '#1F2937',
         'sign-dialog-footer-background': '#2B3544'
