@@ -511,7 +511,7 @@ const Home = ({ setIsAuthenticated }) => {
             {/* Chat Messages Area */}
             <div className="flex-1 p-3 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
-                <div key={index} className={`mb-3 flex justify-${msg.role === 'user' ? 'end' : 'start'}`}>
+                <div key={index} className={`mb-3 flex justify-end`}>
                   <p className={`inline-block p-3 rounded-xl text-white max-w-1/3
                     ${msg.role === 'user' ? 'bg-custom-hover-gray3 ml-16' : 'border border-suggestion-border mr-16'}`}>
                     {msg.text}
