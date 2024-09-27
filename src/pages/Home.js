@@ -1,12 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate } from "react-router-dom";
+import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
 import config from '../config.json';
 import AxiosPostRequest from '../api/AxiosPostRequest'; 
 
 const Home = ({ setIsAuthenticated }) => {
+  const defaultAgentIcon = config.defaultAgentIcon;
   const siteUrl = config.siteUrl;
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
+    localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
+  
+    setIsAuthenticated(false);
+
+    navigate('/');
+  };
 
   const apiKey  = config.apiKey;
   const secretKey = config.secretKey;
@@ -73,19 +86,69 @@ const Home = ({ setIsAuthenticated }) => {
     setHistoryDropdownOpen(historyDropdownOpen === chatId ? null : chatId);
   };
 
-  const handleShare = (chatId) => {
-    console.log(`Share chat with ID: ${chatId}`);
+  const handleShare = (threadId) => {
+    console.log(`Share chat with ID: ${threadId}`);
     // Implement share functionality
   };
 
-  const handleRename = (chatId) => {
-    console.log(`Rename chat with ID: ${chatId}`);
-    // Implement rename functionality
+
+  const [renameThreadId, setRenameThreadId] = useState(null); // State to track which thread is being renamed
+  const [newThreadName, setNewThreadName] = useState(''); // State to hold the new name
+
+  const handleRename = (threadId, currentName) => {
+    setRenameThreadId(threadId); // Set the thread being renamed
+    setNewThreadName(currentName); // Set the current name as default in the input
+  };
+  
+  const handleRenameSubmit = async(threadId) => {
+    const data = {
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+      'thread_id': threadId,
+      'thread_name': newThreadName
+    };
+
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/updateThread.cfm`, data);
+      
+      setThreadList(prevThreadList =>
+        prevThreadList.map(oneThread =>
+          oneThread.thread_id === threadId
+            ? { ...oneThread, message: newThreadName } // Update the thread message with the new name
+            : oneThread
+        )
+      );
+    } catch (error) {
+      console.error(error.response ? error.response.data : error.message);
+    }
+    
+    setRenameThreadId(null);
   };
 
-  const handleDeleteThread = (thread_id) => {
+  const handleDeleteThread = async(threadId) => {
     if (window.confirm("Are you sure you want to delete this chat?")) {
-      setThreadList(threadList.filter(oneThread => oneThread.thread_id !== thread_id));
+      const response = await openai.beta.threads.del(threadId);
+
+      if (response.deleted) {
+        const data = {
+          'APIKEY': apiKey,
+          'SECRETKEY': secretKey,
+          'loginKey': loginKey,
+          'thread_id': threadId,
+        };
+    
+        try {
+          const response = await AxiosPostRequest(`${siteUrl}/api/deleteThread.cfm`, data);
+          
+          if (response.status === 'success') {
+            setThreadList(threadList.filter(oneThread => oneThread.thread_id !== threadId));
+          }
+    
+        } catch (error) {
+          console.error(error.response ? error.response.data : error.message);
+        }
+      }
     }
   };
 
@@ -156,12 +219,14 @@ const Home = ({ setIsAuthenticated }) => {
 
     try {
       const response = await AxiosPostRequest(`${siteUrl}/api/getThreads.cfm`, data);
-      const filteredAndSortedResponse = Array.isArray(response)
+      const filteredResponse = Array.isArray(response)
       ? response
           .filter(thread => thread.message !== "")  // Filter out empty messages
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by created_at, latest first
       : [];
-      setThreadList(filteredAndSortedResponse);
+      setThreadList(filteredResponse);
+
+      const categorized = categorizeThreadsByDate(filteredResponse); // Categorize threads after fetching
+      setCategorizedThreads(categorized); // Update categorized threads state
 
     } catch (error) {
       console.error(error.response ? error.response.data : error.message);
@@ -318,7 +383,7 @@ const Home = ({ setIsAuthenticated }) => {
     }
 
     return { starters, descriptions };
-};
+  };
 
   useEffect(() => {
     if (selectedAgent) {
@@ -339,17 +404,116 @@ const Home = ({ setIsAuthenticated }) => {
       getThreadsList();
     }
   }, [openai]);
-  
-  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
-    localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
-  
-    setIsAuthenticated(false);
+  useEffect(() => {
+    const categorized = categorizeThreadsByDate(threadList);
+    setCategorizedThreads(categorized);
+  }, [threadList]);
 
-    navigate('/');
+  const [categorizedThreads, setCategorizedThreads] = useState({
+    today: [],
+    yesterday: [],
+    previous7Days: [],
+    past30Days: [],
+    older: [],
+  });
+  
+  const categorizeThreadsByDate = (threads) => {
+    const today = [];
+    const yesterday = [];
+    const previous7Days = [];
+    const past30Days = [];
+    const older = [];
+
+    if (threads && threads.length > 0) {
+      threads.forEach((thread) => {
+        const createdAt = new Date(thread.created_at * 1000); // No need to convert since it's already in milliseconds
+        const daysDiff = differenceInCalendarDays(new Date(), createdAt);
+        if (isToday(createdAt)) {
+          today.push(thread);
+        } else if (isYesterday(createdAt)) {
+          yesterday.push(thread);
+        } else if (daysDiff <= 7) {
+          previous7Days.push(thread);
+        } else if (daysDiff <= 30) {
+          past30Days.push(thread);
+        } else {
+          older.push(thread);
+        }
+      });
+    }
+  
+    const sortByCreatedAt = (a, b) => b.created_at - a.created_at; // Sort function for descending order
+    return {
+      today: today.sort(sortByCreatedAt),
+      yesterday: yesterday.sort(sortByCreatedAt),
+      previous7Days: previous7Days.sort(sortByCreatedAt),
+      past30Days: past30Days.sort(sortByCreatedAt),
+      older: older.sort(sortByCreatedAt),
+    };
   };
+
+  const renderThreads = (threads, title) => (
+    <div key={title}>
+      <h1 className="p-2 text-xs font-medium text-custom-text-gray">{title}</h1>
+      {threads.map((oneThread) => (
+        <div
+          key={oneThread.thread_id}
+          onClick={() => openThread(oneThread)}
+          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
+        >
+          {renameThreadId === oneThread.thread_id ? (
+            <input
+              type="text"
+              value={newThreadName}
+              onChange={(e) => setNewThreadName(e.target.value)}
+              onBlur={() => handleRenameSubmit(oneThread.thread_id)} // Submit on blur
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSubmit(oneThread.thread_id); // Submit on Enter key
+              }}
+              className="mr-3 p-1 w-full rounded-lg bg-transparent"
+              autoFocus
+            />
+          ) : (
+            <h2 className="truncate mr-2">{oneThread.message}</h2>
+          )}
+          
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
+            <i
+              className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2"
+              style={{ width: '18px', height: '18px' }}
+              onClick={() => toggleHistoryDropdown(oneThread.thread_id)}
+            ></i>
+            <i
+              className="fas fa-trash-alt text-md hover:text-custom-hover-gray2"
+              style={{ width: '18px', height: '18px' }}
+              onClick={() => handleDeleteThread(oneThread.thread_id)}
+            ></i>
+
+            {/* Dropdown Menu */}
+            {historyDropdownOpen === oneThread.thread_id && (
+              <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
+                <div
+                  className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
+                  onClick={() => handleRename(oneThread.thread_id, oneThread.message)}
+                >
+                  <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                  <span>Rename</span>
+                </div>
+                <div
+                  className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
+                  onClick={() => handleDeleteThread(oneThread.thread_id)}
+                >
+                  <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
+                  <span>Delete</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex" style={{ height: realHeight }}>
@@ -362,72 +526,34 @@ const Home = ({ setIsAuthenticated }) => {
           <i className="fas fas fa-bars cursor-pointer md:hidden text-md" style={{ width: '18px', height: '18px' }} onClick={() => setIsSidebarOpen(false)}></i>
           {selectedAgent && (
           <div className="flex items-center">
-            <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-7 h-7 rounded-full mr-2" />
+            <img 
+              src={selectedAgent.icon} alt={selectedAgent.alias} 
+              onError={(e) => {
+                e.target.onerror = null; // Prevent infinite looping
+                e.target.src = defaultAgentIcon; // Replace with your default image URL
+              }}
+              className="w-7 h-7 rounded-full mr-2" />
             <p className="text-sm font-medium text-white">{selectedAgent.alias}</p>
           </div>
           )}
           <i className="fas fa-pencil-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }} onClick={handleStartNewChat}></i>
         </div>
 
-        {/* Chat History */}
+        {/* Thread History */}
         <div className="flex-1 overflow-y-auto text-sm">
-          <h1 className="p-2 pt-6 text-xs font-medium text-custom-text-gray">Conversations</h1>
           {threadList && threadList.length > 0 ? (
-            threadList
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at)) // Sort by created_at, latest first
-            .map((oneThread) => (
-              <div
-                key={oneThread.thread_id}  // Ensure unique key from oneThread
-                onClick={() => openThread(oneThread)}
-                className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
-              >
-                <h2 className="truncate mr-2">{oneThread.message}</h2>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
-                  <i 
-                    className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2" 
-                    style={{ width: '18px', height: '18px' }} 
-                    onClick={() => toggleHistoryDropdown(oneThread.thread_id)}
-                  ></i>
-                  <i 
-                    className="fas fa-trash-alt text-md hover:text-custom-hover-gray2" 
-                    style={{ width: '18px', height: '18px' }} 
-                    onClick={() => handleDeleteThread(oneThread.thread_id)}
-                  ></i>
-
-                  {/* Dropdown Menu */}
-                  {historyDropdownOpen === oneThread.thread_id && (
-                    <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
-                      <div
-                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
-                        onClick={() => handleShare(oneThread.thread_id)}
-                      >
-                        <i className="fas fa-upload icon-md" style={{ width: '18px', height: '18px' }}></i>
-                        <span>Share</span>
-                      </div>
-                      <div
-                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
-                        onClick={() => handleRename(oneThread.thread_id)}
-                      >
-                        <i className="fas fa-pencil-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
-                        <span>Rename</span>
-                      </div>
-                      <div
-                        className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3 text-delete-color"
-                        onClick={() => handleDeleteThread(oneThread.thread_id)}
-                      >
-                        <i className="fas fa-trash-alt icon-md" style={{ width: '18px', height: '18px' }}></i>
-                        <span>Delete</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
+            <>
+              {categorizedThreads.today.length > 0 && renderThreads(categorizedThreads.today, 'Today')}
+              {categorizedThreads.yesterday.length > 0 && renderThreads(categorizedThreads.yesterday, 'Yesterday')}
+              {categorizedThreads.previous7Days.length > 0 && renderThreads(categorizedThreads.previous7Days, 'Previous 7 days')}
+              {categorizedThreads.past30Days.length > 0 && renderThreads(categorizedThreads.past30Days, 'Past 30 days')}
+              {categorizedThreads.older.length > 0 && renderThreads(categorizedThreads.older, 'Older')}
+            </>
           ) : (
-            <div className="p-2 text-sm font-normal text-custom-text-gray">No conversations</div> // Optional message for empty state
+            <div className="p-2 text-xs font-medium text-custom-text-gray">No conversations</div> // Optional message for empty state
           )}
-
         </div>
+
 
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
@@ -501,7 +627,13 @@ const Home = ({ setIsAuthenticated }) => {
           <>
           {selectedAgent && (
           <div className="flex flex-col items-center justify-center flex-1">
-            <img src={selectedAgent.icon} alt={selectedAgent.alias} className="w-12 h-12 mb-2 rounded-full" />
+            <img 
+              src={selectedAgent.icon} alt={selectedAgent.alias} 
+              onError={(e) => {
+                e.target.onerror = null; // Prevent infinite looping
+                e.target.src = defaultAgentIcon; // Replace with your default image URL
+              }}
+              className="w-12 h-12 mb-2 rounded-full" />
             <h1 className="text-white md:mb-8 text-2xl text-medium p-3 md:px-16">{selectedAgent.intro}</h1>
           </div>
           )}

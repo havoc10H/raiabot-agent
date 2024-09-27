@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Navigate } from 'react-router-dom'; // Ensure this is imported correctly
 import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
 import Home from "./pages/Home";
 
 function App() {
@@ -26,10 +25,6 @@ function App() {
         <Route
             path="/signin"
             element={isAuthenticated ? <Navigate to="/" /> : <SignIn setIsAuthenticated={setIsAuthenticated} />}
-        />
-        <Route
-            path="/signup"
-            element={isAuthenticated ? <Navigate to="/" /> : <SignUp />}
         />
         <Route
           path="*"

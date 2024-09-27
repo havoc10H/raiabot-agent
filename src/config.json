@@ -1,6 +1,7 @@
 {
     "appName": "raia - Agent",
     "appIcon": "https://raiabot.com/assets/images/favicon.ico",
+    "defaultAgentIcon": "https://raiabot.com/chat/templates/v1/raia.png",
     "siteUrl": "https://raiabot.com",
     "description": "This is raia - Agent bot for users.",
     "apiKey": "51090527-C171-7892-A79779B365C1BDCF",

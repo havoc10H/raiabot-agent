@@ -70,11 +70,7 @@ export default function SignIn({ setIsAuthenticated }) {
             <header className="mb-10 text-center">
               <div className="inline-flex items-center justify-between my-2">
                 <div className="flex items-center space-x-2">
-                  <img
-                    src={appIcon}
-                    alt="App Icon"
-                    className="w-7 h-7 rounded-full"
-                  />
+                  <img src={appIcon} alt="App Icon" className="w-7 h-7 rounded-full" />
                   <h1 className="text-xl font-semibold">{appName}</h1>
                 </div>
               </div>
@@ -190,7 +186,7 @@ export default function SignIn({ setIsAuthenticated }) {
               </div>
               <div className="grow bg-sign-dialog-footer-background p-5 text-center text-sm md:px-16">
                 Don’t have an account yet?{" "}
-                <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-400">Sign up</Link>
+                <Link to={siteUrl} className="font-medium text-blue-600 hover:text-blue-400">Sign up</Link>
               </div>
             </div>
             {/* END Sign In Form */}
