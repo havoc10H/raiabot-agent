@@ -126,7 +126,7 @@ export default function SignIn({ setIsAuthenticated }) {
                         />
                         <span className="ml-2 text-sm">Remember me</span>
                       </label>
-                      <Link to="/forgot-password" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-400">Forgot Password?</Link>
+                      <Link to="#" className="inline-block text-sm font-medium text-blue-600 hover:text-blue-400">Forgot Password?</Link>
                     </div>
                     <button
                       type="submit"

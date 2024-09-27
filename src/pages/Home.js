@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThreeDots } from 'react-loader-spinner';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
+import Swal from 'sweetalert2';
 import config from '../config.json';
 import AxiosPostRequest from '../api/AxiosPostRequest'; 
 
@@ -12,13 +13,24 @@ const Home = ({ setIsAuthenticated }) => {
 
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
-    localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
-  
-    setIsAuthenticated(false);
+  const handleSignout = async () => {
+    const result = await Swal.fire({
+      title: 'Are you sure you want to sign out?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, sign out!',
+      cancelButtonText: 'No, cancel',
+    });
 
-    navigate('/');
+    if (result.isConfirmed) {
+       
+      localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
+      localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
+    
+      setIsAuthenticated(false);
+
+      navigate('/');
+    }
   };
 
   const apiKey  = config.apiKey;
@@ -82,15 +94,14 @@ const Home = ({ setIsAuthenticated }) => {
 
   const [historyDropdownOpen, setHistoryDropdownOpen] = useState(null); // State to manage dropdown visibility
 
-  const toggleHistoryDropdown = (chatId) => {
-    setHistoryDropdownOpen(historyDropdownOpen === chatId ? null : chatId);
+  const toggleHistoryDropdown = (threadId) => {
+    setHistoryDropdownOpen(historyDropdownOpen === threadId ? null : threadId);
   };
 
   const handleShare = (threadId) => {
     console.log(`Share chat with ID: ${threadId}`);
     // Implement share functionality
   };
-
 
   const [renameThreadId, setRenameThreadId] = useState(null); // State to track which thread is being renamed
   const [newThreadName, setNewThreadName] = useState(''); // State to hold the new name
@@ -110,7 +121,7 @@ const Home = ({ setIsAuthenticated }) => {
     };
 
     try {
-      const response = await AxiosPostRequest(`${siteUrl}/api/updateThread.cfm`, data);
+      await AxiosPostRequest(`${siteUrl}/api/updateThread.cfm`, data);
       
       setThreadList(prevThreadList =>
         prevThreadList.map(oneThread =>
@@ -127,7 +138,21 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const handleDeleteThread = async(threadId) => {
-    if (window.confirm("Are you sure you want to delete this chat?")) {
+    const result = await Swal.fire({
+      title: 'Are you sure you want to delete this thread?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, cancel',
+    });
+
+    if (result.isConfirmed) {
+       
+      if (thread.id === threadId) {
+        handleStartNewChat();
+      }
+
       const response = await openai.beta.threads.del(threadId);
 
       if (response.deleted) {
@@ -459,8 +484,7 @@ const Home = ({ setIsAuthenticated }) => {
       {threads.map((oneThread) => (
         <div
           key={oneThread.thread_id}
-          onClick={() => openThread(oneThread)}
-          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray cursor-pointer flex justify-between items-center group"
+          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center group"
         >
           {renameThreadId === oneThread.thread_id ? (
             <input
@@ -475,10 +499,12 @@ const Home = ({ setIsAuthenticated }) => {
               autoFocus
             />
           ) : (
-            <h2 className="truncate mr-2">{oneThread.message}</h2>
+            <h2 className="truncate mr-2 cursor-pointer" onClick={() => openThread(oneThread)}>{oneThread.message}</h2>
           )}
           
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-3">
+          <div 
+            onBlur={() => setHistoryDropdownOpen(null)} // Submit on blur
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2 cursor-pointer">
             <i
               className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2"
               style={{ width: '18px', height: '18px' }}
@@ -561,16 +587,16 @@ const Home = ({ setIsAuthenticated }) => {
             <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
-            <div>
+            <Link to={siteUrl}>
               <h1 className="text-sm font-normal text-white">ask raia</h1>
               <p className="text-xs font-normal text-custom-text-gray">
                 Do you need help?
               </p>
-            </div>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer"
-            onClick={() => handleLogout()} 
+            onClick={() => handleSignout()} 
           >
             <div className="flex items-center justify-center w-8 h-8 bg-custom-red rounded-full text-white">
               <span className="text-sm">{loginUsername.charAt(0).toUpperCase()}</span>
