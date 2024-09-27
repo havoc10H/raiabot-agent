@@ -484,7 +484,8 @@ const Home = ({ setIsAuthenticated }) => {
       {threads.map((oneThread) => (
         <div
           key={oneThread.thread_id}
-          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center group"
+          onClick={() => openThread(oneThread)} 
+          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center cursor-pointer group "
         >
           {renameThreadId === oneThread.thread_id ? (
             <input
@@ -495,15 +496,14 @@ const Home = ({ setIsAuthenticated }) => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleRenameSubmit(oneThread.thread_id); // Submit on Enter key
               }}
-              className="mr-3 p-1 w-full rounded-lg bg-transparent"
+              className="mr-3 w-full bg-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
               autoFocus
             />
           ) : (
-            <h2 className="truncate mr-2 cursor-pointer" onClick={() => openThread(oneThread)}>{oneThread.message}</h2>
+            <h2 className="truncate mr-2">{oneThread.message}</h2>
           )}
           
           <div 
-            onBlur={() => setHistoryDropdownOpen(null)} // Submit on blur
             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2 cursor-pointer">
             <i
               className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2"
@@ -517,9 +517,12 @@ const Home = ({ setIsAuthenticated }) => {
             ></i>
 
             {/* Dropdown Menu */}
-            {historyDropdownOpen === oneThread.thread_id && (
-              <div className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36">
+            {(historyDropdownOpen === oneThread.thread_id) && (
+              <div 
+                onMouseLeave={() => toggleHistoryDropdown(null)}  // Clear hovered thread
+                className="absolute bg-threeoptions-background text-sm font-normal rounded-lg top-8 right-2 w-36 z-10">
                 <div
+                  onBlur={() => setHistoryDropdownOpen(null)} 
                   className="p-3 m-2 rounded-md hover:bg-threeoptions-hover cursor-pointer flex items-center gap-3"
                   onClick={() => handleRename(oneThread.thread_id, oneThread.message)}
                 >
@@ -583,7 +586,7 @@ const Home = ({ setIsAuthenticated }) => {
 
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
-          <div className="flex items-center gap-3 py-[10px] pl-3 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
             <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
