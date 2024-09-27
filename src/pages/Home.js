@@ -78,7 +78,6 @@ const Home = ({ setIsAuthenticated }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
 
-
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleAgentChange = (agent) => {
@@ -100,7 +99,6 @@ const Home = ({ setIsAuthenticated }) => {
 
   const handleShare = (threadId) => {
     console.log(`Share chat with ID: ${threadId}`);
-    // Implement share functionality
   };
 
   const [renameThreadId, setRenameThreadId] = useState(null); // State to track which thread is being renamed
@@ -112,6 +110,8 @@ const Home = ({ setIsAuthenticated }) => {
   };
   
   const handleRenameSubmit = async(threadId) => {
+    toggleHistoryDropdown(null);
+    
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -138,6 +138,8 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const handleDeleteThread = async(threadId) => {
+    toggleHistoryDropdown(null);
+
     const result = await Swal.fire({
       title: 'Are you sure you want to delete this thread?',
       text: "You won't be able to revert this!",
@@ -149,7 +151,7 @@ const Home = ({ setIsAuthenticated }) => {
 
     if (result.isConfirmed) {
        
-      if (thread.id === threadId) {
+      if (thread && thread.id === threadId) {
         handleStartNewChat();
       }
 
@@ -484,7 +486,6 @@ const Home = ({ setIsAuthenticated }) => {
       {threads.map((oneThread) => (
         <div
           key={oneThread.thread_id}
-          onClick={() => openThread(oneThread)} 
           className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center cursor-pointer group "
         >
           {renameThreadId === oneThread.thread_id ? (
@@ -500,11 +501,11 @@ const Home = ({ setIsAuthenticated }) => {
               autoFocus
             />
           ) : (
-            <h2 className="truncate mr-2">{oneThread.message}</h2>
+            <h2 className="truncate mr-2 w-full" onClick={() => openThread(oneThread)} >{oneThread.message}</h2>
           )}
           
           <div 
-            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2 cursor-pointer">
+            className="opacity-30 md:opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center relative gap-2 cursor-pointer">
             <i
               className="fas fa-ellipsis-h text-md hover:text-custom-hover-gray2"
               style={{ width: '18px', height: '18px' }}
@@ -552,11 +553,18 @@ const Home = ({ setIsAuthenticated }) => {
       >
         {/* App Icon, New Chat */}
         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" >
-          <i className="fas fas fa-bars cursor-pointer md:hidden text-md" style={{ width: '18px', height: '18px' }} onClick={() => setIsSidebarOpen(false)}></i>
+          <i 
+            className="fas fas fa-bars cursor-pointer md:hidden text-md" style={{ width: '18px', height: '18px' }}
+            onClick={() => {
+              setIsSidebarOpen(false); // Close the sidebar
+              toggleHistoryDropdown(null); // Toggle the dropdown visibility
+            }}>
+          </i>
           {selectedAgent && (
           <div className="flex items-center">
             <img 
-              src={selectedAgent.icon} alt={selectedAgent.alias} 
+              src={selectedAgent.icon} 
+              alt={selectedAgent.alias} 
               onError={(e) => {
                 e.target.onerror = null; // Prevent infinite looping
                 e.target.src = defaultAgentIcon; // Replace with your default image URL
@@ -565,7 +573,13 @@ const Home = ({ setIsAuthenticated }) => {
             <p className="text-sm font-medium text-white">{selectedAgent.alias}</p>
           </div>
           )}
-          <i className="fas fa-pencil-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }} onClick={handleStartNewChat}></i>
+          <i 
+            className="fas fa-pencil-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }}
+            onClick={() => {
+              handleStartNewChat(); 
+              toggleHistoryDropdown(null); // Toggle the dropdown visibility
+            }}>
+          </i>
         </div>
 
         {/* Thread History */}
@@ -657,7 +671,8 @@ const Home = ({ setIsAuthenticated }) => {
           {selectedAgent && (
           <div className="flex flex-col items-center justify-center flex-1">
             <img 
-              src={selectedAgent.icon} alt={selectedAgent.alias} 
+              src={selectedAgent.icon} 
+              alt={selectedAgent.alias} 
               onError={(e) => {
                 e.target.onerror = null; // Prevent infinite looping
                 e.target.src = defaultAgentIcon; // Replace with your default image URL
