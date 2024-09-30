@@ -11,6 +11,7 @@ module.exports = {
         'custom-hover-gray2': '#B8B8B8',
         'custom-hover-gray3': '#2F2F2F',
         'custom-text-gray': '#676767',
+        'comment-text': '#CFCFCF',
         'custom-bother-gray': '#292929',
         'delete-color': '#C74444',
         'custom-red': '#EC407A',
@@ -23,7 +24,8 @@ module.exports = {
         'button-background': '#C4C4C4',
         'sign-background': '#111827',
         'sign-dialog-background': '#1F2937',
-        'sign-dialog-footer-background': '#2B3544'
+        'sign-dialog-footer-background': '#2B3544',
+        'dialog-background': '#1F2937'
       },
     },
   },

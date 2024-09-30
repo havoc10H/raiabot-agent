@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
 import Swal from 'sweetalert2';
+import Toast from './Toast'; // Adjust the path as necessary
 import config from '../config.json';
 import AxiosPostRequest from '../api/AxiosPostRequest'; 
 
@@ -14,12 +15,19 @@ const Home = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
 
   const handleSignout = async () => {
+    
     const result = await Swal.fire({
-      title: 'Are you sure you want to sign out?',
+      title: '<h2 class="text-lg text-white">Are you sure you want to sign out?</h2>',
       icon: 'warning',
+      background: '#1F2937', // Dark background
       showCancelButton: true,
-      confirmButtonText: 'Yes, sign out!',
+      confirmButtonText: 'Yes, sign out!!',
       cancelButtonText: 'No, cancel',
+      customClass: {
+        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', // Custom delete button
+        cancelButton: 'bg-threeoptions-background hover:threeoptions-hover text-white text-sm', // Custom cancel button
+        popup: 'border border-custom-bother-gray w-full md:w-2/5', // Smaller popup size with padding
+      },
     });
 
     if (result.isConfirmed) {
@@ -141,13 +149,21 @@ const Home = ({ setIsAuthenticated }) => {
     toggleHistoryDropdown(null);
 
     const result = await Swal.fire({
-      title: 'Are you sure you want to delete this thread?',
-      text: "You won't be able to revert this!",
+      title: '<h2 class="text-lg text-white">Are you sure you want to delete this thread?</h2>',
+      html: '<p class="text-sm text-gcustom-text-gray">You won\'t be able to revert this!</p>',
       icon: 'warning',
+      background: '#1F2937', // Dark background
       showCancelButton: true,
       confirmButtonText: 'Yes, delete it!',
       cancelButtonText: 'No, cancel',
+      customClass: {
+        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', // Custom delete button
+        cancelButton: 'bg-threeoptions-background hover:threeoptions-hover text-white text-sm', // Custom cancel button
+        popup: 'border border-custom-bother-gray w-full md:w-2/5', // Smaller popup size with padding
+      },
     });
+    
+    
 
     if (result.isConfirmed) {
        
@@ -197,15 +213,22 @@ const Home = ({ setIsAuthenticated }) => {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleStartChat = async (newMessage) => {
-    const newMessages = [...messages, { text: newMessage, role: 'user' }];
+  const handleStartChat = async (newMessage, isSuggestion = false) => {
+    const newMessages = [...messages, { message: newMessage, role: 'user' }];
     setMessages(newMessages);
     setMessage('');
 
     setIsLoading(true);
 
-    const replyMessage = await sendMessage(newMessage);
-    setMessages(prevMessages => [...prevMessages, { text: replyMessage, role: 'assistant' }]);
+    const { replyText, message_id, thread_id } = await sendMessage(newMessage, isSuggestion);
+    setMessages(prevMessages => [...prevMessages, 
+      { 
+        message: replyText, 
+        role: 'assistant',
+        message_id: message_id,
+        thread_id: thread_id
+      }
+    ]);
 
     setIsLoading(false);
   }
@@ -283,45 +306,77 @@ const Home = ({ setIsAuthenticated }) => {
     };
 
     try {
-      const response = await AxiosPostRequest(`${siteUrl}/api/saveThread.cfm`, data);
-      console.log(response); // Now response will contain the parsed data
+      await AxiosPostRequest(`${siteUrl}/api/saveThread.cfm`, data);
     } catch (error) {
       console.error(error.response ? error.response.data : error.message);
     }
   }
 
+  const cleanJsonString = (str) => {
+    return str.replace(/[^\x20-\x7E]/g, ''); // Remove non-printable ASCII characters
+  };
+
+  const getThread = async (threadId) => {
+    const data = {
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'LOGINKEY': loginKey,
+      'thread_id': threadId,
+    };
+
+    const response = await AxiosPostRequest(`${siteUrl}/api/getThread.cfm`, data);
+  
+    let responseThread;
+
+    if (response && Array.isArray(response.Thread) && response.Thread.length > 0) {
+      responseThread = response.Thread[0]; // Get the first thread
+    } else {
+      const cleanedString = cleanJsonString(response);
+      const responseString = JSON.parse(cleanedString); // Convert JSON string to object
+      responseThread = responseString.Thread[0];
+    }
+           // Create a new array of messages with associated comments
+    const messagesWithComments = responseThread.Messages.map((message) => {
+      // Find comments that match the current message ID
+      const responseComments = responseThread.Comments || [];
+      const associatedComments = responseComments.filter(comment => comment.message_id === message.message_id);
+      
+      return {
+        ...message, // Spread existing message properties
+        thread_id: threadId,
+        comments: associatedComments[0] // Add the comments array
+      };
+    });
+
+    messagesWithComments.sort((a, b) => {
+      return a.created_at - b.created_at; // Ascending order for older first
+    });
+
+    setMessages(messagesWithComments);
+  }
+
   const openThread = async (selectedThread) => {
+    if (thread && thread.thread_id === selectedThread.thread_id) 
+      return;
+
     selectedThread.id = selectedThread.thread_id;
 
     setThread(selectedThread);
-    getMessageList(selectedThread.thread_id);
+
+    getThread(selectedThread.thread_id);
 
     setIsSidebarOpen(false);
+
+    handleCancelComment();
   }
 
-  const getMessageList = async (thread_id) => {
-    const threadMessages = await openai.beta.threads.messages.list(
-      thread_id, 
-      {
-        order: "asc" // Assuming 'desc' orders messages from latest to oldest
-      }
-    );
-
-    const formattedMessages = threadMessages.data.map((message, index) => ({
-      text: message.content[0].text.value,  // Access the text value
-      role: message.role                     // Access the role
-    }));
-
-    setMessages(formattedMessages);
-  }
-
-  const sendMessage = async (userMessageContent) => {
+  const sendMessage = async (userMessageContent, isSuggestion = false) => {
     if (!openai) {
       console.error("OpenAI client is not initialized.");
       return; // Exit if openai is null
     }
 
-    const currentThread = thread || await createThread();
+    const currentThread = isSuggestion?await createThread():thread || await createThread();
 
     if (messages.length === 0) {
       setThreadList((prevThreadList) => {
@@ -364,7 +419,11 @@ const Home = ({ setIsAuthenticated }) => {
           const replyText = assistantMessageData.content[0].text.value; 
           saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, replyText, assistantMessageData.role);
 
-          return replyText; // Return the reply text
+          return {
+            replyText: replyText,
+            message_id: assistantMessageData.id,
+            thread_id: currentThread.id
+          }; // Return the reply text
         }
        
       } else {
@@ -390,12 +449,87 @@ const Home = ({ setIsAuthenticated }) => {
     };
 
     try {
-      const response = await AxiosPostRequest(`${siteUrl}/api/saveMessage.cfm`, data);
-      console.log(response); // Now response will contain the parsed data
+      await AxiosPostRequest(`${siteUrl}/api/saveMessage.cfm`, data);
     } catch (error) {
       console.error(error.response ? error.response.data : error.message);
     }
   }
+
+  const [isCommentModalOpen, setCommentModalOpen] = useState(false);
+  const [comment, setComment] = useState('');
+
+  const [commentThreadId, setCommentThreadId] = useState(null);
+  const [commentMessageId, setCommentMessageId] = useState(null);
+  const [commentThumbsUp, setCommentThumbsUp] = useState(true);
+
+  const writeComment = async(threadId, messageId, isThumbsUp) => {
+    setCommentThreadId(threadId);
+    setCommentMessageId(messageId);
+    setCommentThumbsUp(isThumbsUp);
+
+    setCommentModalOpen(true); // Open the modal
+  }
+
+  const handleSaveComment = async() => {
+    const data = {
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+      'thread_id': commentThreadId,
+      'message_id': commentMessageId,
+      'comment': comment,
+      'isThumbsUp': commentThumbsUp?1:0,
+      'isThumbsDown': commentThumbsUp?0:1,
+      'created_at': Date.now()
+    };
+
+    try {
+      await AxiosPostRequest(`${siteUrl}/api/newComment.cfm`, data);
+      
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => {
+          if (msg.message_id === commentMessageId && msg.thread_id === commentThreadId) {
+            const updatedComments = msg.comments
+              ? { ...msg.comments, isThumbsUp: commentThumbsUp ? "1" : "0", comment: data.comment } // Update thumbs up state
+              : { isThumbsUp: commentThumbsUp ? "1" : "0", comment: data.comment}; // Create new comments if none exist
+            return { ...msg, comments: updatedComments }; // Return updated message
+          }
+          return msg; // Return unchanged message
+        })
+      );
+
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+    }
+
+    setCommentModalOpen(false);
+    setComment('');
+  };
+
+  const handleCancelComment = () => {
+    setCommentModalOpen(false); // Close modal
+    setCommentThreadId(null);
+    setCommentMessageId(null);
+    setComment(''); // Clear the comment input
+  };
+
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
+  const copyToClipboard = async (copyText) => {
+    try {
+      await navigator.clipboard.writeText(copyText);
+      setToastMessage("Copied to clipboard!");
+      setShowToast(true);
+    } catch (err) {
+      setToastMessage("Failed to copy!");
+      setShowToast(true);
+    }
+  };
+
+  const handleCloseToast = () => {
+    setShowToast(false);
+  };
 
   const extractSuggestions = (agent) => {
     const starters = [];
@@ -486,7 +620,7 @@ const Home = ({ setIsAuthenticated }) => {
       {threads.map((oneThread) => (
         <div
           key={oneThread.thread_id}
-          className="p-2 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center cursor-pointer group "
+          className="p-2 scrollbar-thumb-rounded scrollbar-track-gray-200 scrollbar-thumb-gray-600 text-sm font-normal rounded-lg hover:bg-custom-hover-gray flex justify-between items-center cursor-pointer group "
         >
           {renameThreadId === oneThread.thread_id ? (
             <input
@@ -547,6 +681,40 @@ const Home = ({ setIsAuthenticated }) => {
 
   return (
     <div className="flex" style={{ height: realHeight }}>
+      {isCommentModalOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="bg-dialog-background p-3 rounded shadow-lg mx-8 w-full md:w-1/3">
+          <h2 className="text-lg font-semibold mb-4 text-white">Write Comment</h2>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Enter your comment here..."
+            rows="5"
+            className="w-full bg-transparent text-white border border-gray-300 rounded p-2 mb-4"
+          />
+          <div className="flex justify-between">
+            <button 
+              onClick={handleSaveComment}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            >
+              Save&nbsp;
+              {commentThumbsUp ? (
+                <i className="far fa-thumbs-up"></i>
+              ) : (
+                <i className="far fa-thumbs-down"></i>
+              )}
+            </button>
+            <button 
+              onClick={handleCancelComment}
+              className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
       {/* Left Sidebar */}
       <div
         className={`fixed inset-y-0 z-50 w-3/4 md:w-1/3 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
@@ -687,12 +855,50 @@ const Home = ({ setIsAuthenticated }) => {
             {/* Chat Messages Area */}
             <div className="flex-1 p-3 overflow-y-auto md:mt-8">
               {messages.map((msg, index) => (
-                <div key={index} className={`mb-3 flex justify-end`}>
-                  <p className={`inline-block p-3 rounded-xl text-white max-w-1/3
-                    ${msg.role === 'user' ? 'bg-custom-hover-gray3 ml-16' : 'border border-suggestion-border mr-16'}`}>
-                    {msg.text}
-                  </p>
+                <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    <p className={`inline-block p-3 rounded-xl text-white max-w-1/3
+                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
+                      {msg.message}
+                    </p>
+
+                    {/* Icons Row */}
+                    {msg.role !== 'user' && (
+                      <div className="flex space-x-2 text-comment-text">
+                        {msg.comments ? (
+                          msg.comments.isThumbsUp === "1" ? (
+                            // Show thumbs up icon if user liked the comment
+                            <button className="p-2 rounded-full">
+                              <i className="fas fa-thumbs-up"></i>
+                              <span className="pl-1 text-xs">{msg.comments.comment}</span>
+                            </button>
+                          ) : (
+                            <button className="p-2 rounded-full">
+                              <i className="fas fa-thumbs-down"></i>
+                              <span className="pl-1 text-xs">{msg.comments.comment}</span>
+                            </button>
+                          )
+                        ) : (
+                          <>
+                          <button className="p-2 rounded-full" onClick={() => writeComment(msg.thread_id, msg.message_id, true)}>
+                            <i className="far fa-thumbs-up"></i>
+                          </button>
+                          <button className="p-2 rounded-full" onClick={() => writeComment(msg.thread_id, msg.message_id, false)}>
+                            <i className="far fa-thumbs-down"></i>
+                          </button>
+                          </>
+                        )}
+                        
+                        {/* Copy Icon */}
+                        <button className="p-1 rounded-full" onClick={() => copyToClipboard(msg.message)}>
+                          <i className="far fa-copy"></i>
+                        </button>
+                        {showToast && <Toast message={toastMessage} onClose={handleCloseToast} />}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
               ))}
             </div>
           </>
@@ -706,7 +912,7 @@ const Home = ({ setIsAuthenticated }) => {
               <div
                 key={suggestion}
                 className="flex justify-between items-center p-3 border border-suggestion-border rounded-xl text-white text-left cursor-pointer hover:bg-custom-hover-gray4 transition-all duration-200 group"
-                onClick={() => { handleStartChat(suggestion) }}
+                onClick={() => { handleStartChat(suggestion, true) }}
               >
                 <div className="flex flex-col">
                   <p className="text-sm font-medium text-white">{suggestion}</p> 
