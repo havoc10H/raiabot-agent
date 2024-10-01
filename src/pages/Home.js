@@ -853,12 +853,13 @@ const Home = ({ setIsAuthenticated }) => {
         ) : (
           <>
             {/* Chat Messages Area */}
-            <div className="flex-1 p-3 overflow-y-auto md:mt-8">
+            <div className="flex-1 p-3 overflow-y-auto md:mt-4">
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <p className={`inline-block p-3 rounded-xl text-white max-w-1/3
-                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
+                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                    <p className={`p-2 rounded-xl text-white 
+                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}
+                    >
                       {msg.message}
                     </p>
 
