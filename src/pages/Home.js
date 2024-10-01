@@ -6,7 +6,8 @@ import OpenAI from 'openai';
 import Swal from 'sweetalert2';
 import Toast from './Toast'; // Adjust the path as necessary
 import config from '../config.json';
-import AxiosPostRequest from '../api/AxiosPostRequest'; 
+import AxiosPostRequest from '../utils/AxiosPostRequest'; 
+import { encodeString, decodeString, cleanJsonString } from '../utils/String';
 
 const Home = ({ setIsAuthenticated }) => {
   const defaultAgentIcon = config.defaultAgentIcon;
@@ -113,6 +114,8 @@ const Home = ({ setIsAuthenticated }) => {
   const [newThreadName, setNewThreadName] = useState(''); // State to hold the new name
 
   const handleRename = (threadId, currentName) => {
+    if (isLoading)
+      return;
     setRenameThreadId(threadId); // Set the thread being renamed
     setNewThreadName(currentName); // Set the current name as default in the input
   };
@@ -146,6 +149,8 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const handleDeleteThread = async(threadId) => {
+    if (isLoading)
+      return;
     toggleHistoryDropdown(null);
 
     const result = await Swal.fire({
@@ -169,6 +174,7 @@ const Home = ({ setIsAuthenticated }) => {
        
       if (thread && thread.id === threadId) {
         handleStartNewChat();
+        setThread(null);
       }
 
       const response = await openai.beta.threads.del(threadId);
@@ -212,6 +218,19 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const [isLoading, setIsLoading] = useState(false);
+
+  const scrollRef = useRef(null);
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
 
   const handleStartChat = async (newMessage, isSuggestion = false) => {
     const newMessages = [...messages, { message: newMessage, role: 'user' }];
@@ -312,10 +331,6 @@ const Home = ({ setIsAuthenticated }) => {
     }
   }
 
-  const cleanJsonString = (str) => {
-    return str.replace(/[^\x20-\x7E]/g, ''); // Remove non-printable ASCII characters
-  };
-
   const getThread = async (threadId) => {
     const data = {
       'APIKEY': apiKey,
@@ -335,16 +350,16 @@ const Home = ({ setIsAuthenticated }) => {
       const responseString = JSON.parse(cleanedString); // Convert JSON string to object
       responseThread = responseString.Thread[0];
     }
-           // Create a new array of messages with associated comments
+    
     const messagesWithComments = responseThread.Messages.map((message) => {
-      // Find comments that match the current message ID
       const responseComments = responseThread.Comments || [];
       const associatedComments = responseComments.filter(comment => comment.message_id === message.message_id);
       
       return {
         ...message, // Spread existing message properties
         thread_id: threadId,
-        comments: associatedComments[0] // Add the comments array
+        message: decodeString(message.message), // Decode the message
+        comments: associatedComments[0] || [] // Ensure comments is an array
       };
     });
 
@@ -356,6 +371,8 @@ const Home = ({ setIsAuthenticated }) => {
   }
 
   const openThread = async (selectedThread) => {
+    if (isLoading)
+      return;
     if (thread && thread.thread_id === selectedThread.thread_id) 
       return;
 
@@ -444,7 +461,7 @@ const Home = ({ setIsAuthenticated }) => {
       'message_id': message_id,
       'created_at': message_created_at,
       'run_id': run_id,
-      'message': messageContent,
+      'message': encodeString(messageContent),
       'role': role,
     };
 
@@ -635,7 +652,7 @@ const Home = ({ setIsAuthenticated }) => {
               autoFocus
             />
           ) : (
-            <h2 className="truncate mr-2 w-full" onClick={() => openThread(oneThread)} >{oneThread.message}</h2>
+            <h2 className="truncate mr-2 w-full"  onClick={() => openThread(oneThread)} >{oneThread.message}</h2>
           )}
           
           <div 
@@ -794,9 +811,9 @@ const Home = ({ setIsAuthenticated }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-main-background">
+      <div className="flex-1 flex flex-col bg-main-background px-3">
         {/* Top Header for Mobile */}
-        <div className="flex items-center justify-between border-b-2 border-gray-600 md:border-0 p-3 text-white">
+        <div className="flex items-center justify-between border-b-2 border-sidebar-background md:border-0 p-3 text-white">
           <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
           <div className="relative flex-1 flex justify-center md:justify-start" >
@@ -853,7 +870,7 @@ const Home = ({ setIsAuthenticated }) => {
         ) : (
           <>
             {/* Chat Messages Area */}
-            <div className="flex-1 p-3 overflow-y-auto md:mt-4">
+            <div className="flex-1 p-3 overflow-y-auto md:mt-4" ref={scrollRef}>
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
