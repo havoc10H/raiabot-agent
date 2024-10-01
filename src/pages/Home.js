@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FallingLines } from 'react-loader-spinner';
+import { ThreeDots } from 'react-loader-spinner';
 import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
@@ -928,7 +928,7 @@ const Home = ({ setIsAuthenticated }) => {
               ))}
 
               {/* Show loader */}
-              {isLoading && <div className="pl-2" ><FallingLines height="32" width="32" color="white" /></div>} 
+              {isLoading && <div className="pl-2" ><ThreeDots height="32" width="32" color="white" /></div>} 
             </div>
           </>
         )}
