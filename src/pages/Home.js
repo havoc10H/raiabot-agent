@@ -4,8 +4,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
 import Swal from 'sweetalert2';
-import Toast from './Toast'; // Adjust the path as necessary
 import config from '../config.json';
+import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
 import { encodeString, decodeString, cleanJsonString } from '../utils/String';
 
