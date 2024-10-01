@@ -174,8 +174,6 @@ const Home = ({ setIsAuthenticated }) => {
         popup: 'border border-custom-bother-gray w-full md:w-2/5', // Smaller popup size with padding
       },
     });
-    
-    
 
     if (result.isConfirmed) {
        
@@ -183,25 +181,32 @@ const Home = ({ setIsAuthenticated }) => {
         handleStartNewChat();
       }
 
-      const response = await openai.beta.threads.del(threadId);
-
-      if (response.deleted) {
-        const data = {
-          'APIKEY': apiKey,
-          'SECRETKEY': secretKey,
-          'loginKey': loginKey,
-          'thread_id': threadId,
-        };
-    
-        try {
-          const response = await AxiosPostRequest(`${siteUrl}/api/deleteThread.cfm`, data);
-          
-          if (response.status === 'success') {
-            setThreadList(threadList.filter(oneThread => oneThread.thread_id !== threadId));
+      try {
+        const response = await openai.beta.threads.del(threadId);
+        if (response.deleted) {
+          const data = {
+            'APIKEY': apiKey,
+            'SECRETKEY': secretKey,
+            'loginKey': loginKey,
+            'thread_id': threadId,
+          };
+      
+          try {
+            const response = await AxiosPostRequest(`${siteUrl}/api/deleteThread.cfm`, data);
+            
+            if (response.status === 'success') {
+              setThreadList(threadList.filter(oneThread => oneThread.thread_id !== threadId));
+            }
+      
+          } catch (error) {
+            console.error(error.response ? error.response.data : error.message);
           }
-    
-        } catch (error) {
-          console.error(error.response ? error.response.data : error.message);
+        }
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          console.log('Thread not found. Please check the threadId:', threadId);
+        } else {
+          console.error('An error occurred while deleting the thread:', error);
         }
       }
     }
@@ -338,6 +343,15 @@ const Home = ({ setIsAuthenticated }) => {
     }
   }
 
+  const isValidJSON = (jsonString) => {
+    try {
+      JSON.parse(jsonString);
+      return true; // Valid JSON
+    } catch (error) {
+      return false; // Invalid JSON
+    }
+  };
+
   const getThread = async (threadId) => {
     const data = {
       'APIKEY': apiKey,
@@ -354,10 +368,14 @@ const Home = ({ setIsAuthenticated }) => {
       responseThread = response.Thread[0]; // Get the first thread
     } else {
       const cleanedString = cleanJsonString(response);
-      const responseString = JSON.parse(cleanedString); // Convert JSON string to object
-
-      if (Array.isArray(responseString.Thread) && responseString.Thread.length > 0 ) {
-        responseThread = responseString.Thread[0];
+      if (isValidJSON(cleanedString)) {
+        const responseString = JSON.parse(cleanedString); // Convert JSON string to object
+        if (Array.isArray(responseString.Thread) && responseString.Thread.length > 0 ) {
+          responseThread = responseString.Thread[0];
+        } else {
+          setMessages([]);
+          return;
+        }
       } else {
         setMessages([]);
         return;
