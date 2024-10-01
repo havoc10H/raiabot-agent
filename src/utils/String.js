@@ -28,21 +28,24 @@ export const convertToHtml = (inputText) => {
   replacedText = replacedText.replace(/(?<=\D)(\d+\.\s|\-\s)/g, '<br /><strong>$1</strong>');
 
   // Rule 3: Make substring from ### to line end has <h1>
-  replacedText = replacedText.replace(/###(.*?)(<br\s*\/?>|$)/g, '<h1 class="text-xl my-2"><strong>$1</strong></h1>');
+  replacedText = replacedText.replace(/###(.*?)(<br\s*\/?>|$)/g, '<h1 class="text-xl my-1"><strong>$1</strong></h1>');
 
   // Rule 4: Make substring from ## to line end has <h2>
-  replacedText = replacedText.replace(/##(.*?)(<br\s*\/?>|$)/g, '<h2 class="text-lg my-2"><strong>$1</strong></h2>');
+  replacedText = replacedText.replace(/##(.*?)(<br\s*\/?>|$)/g, '<h2 class="text-lg my-1"><strong>$1</strong></h2>');
 
    // Rule 4: Make substring from ## to line end has <h2>
-   replacedText = replacedText.replace(/#(.*?)(<br\s*\/?>|$)/g, '<h3 class="text-md my-2"><strong>$1</strong></h3>');
+   replacedText = replacedText.replace(/#(.*?)(<br\s*\/?>|$)/g, '<h3 class="text-md my-1"><strong>$1</strong></h3>');
 
   // Rule 5: Make substring from ** to ** has <strong>
   replacedText = replacedText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
-  // Rule 6: Make (https: ...) to (<a>https...</a>)
-  replacedText = replacedText.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" class="text-blue-500 text-lg my-2"> $1 </a>');
+// Rule 6: Make substring from [ to ] have <strong> tags
+replacedText = replacedText.replace(/\[(.+?)\]/g, '<strong>[$1]</strong>');
 
-  // Rule 7: Check if the last character is a question mark and insert <br> after the last period
+  // Rule 7: Make (https: ...) to (<a>https...</a>)
+  replacedText = replacedText.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" class="text-blue-500 text-lg my-1"> $1 </a>');
+
+  // Rule final: Check if the last character is a question mark and insert <br> after the last period
   if (replacedText.trim().endsWith('?')) {
     replacedText = replacedText.replace(/[.!](?=[^.!]*$)/, '$&<br /><br />');
   }

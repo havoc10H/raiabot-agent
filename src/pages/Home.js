@@ -249,7 +249,7 @@ const Home = ({ setIsAuthenticated }) => {
     const { replyText, message_id, thread_id } = await sendMessage(newMessage, isSuggestion);
     setMessages(prevMessages => [...prevMessages, 
       { 
-        message: replyText, 
+        message: convertToHtml(replyText), 
         role: 'assistant',
         message_id: message_id,
         thread_id: thread_id
@@ -355,7 +355,13 @@ const Home = ({ setIsAuthenticated }) => {
     } else {
       const cleanedString = cleanJsonString(response);
       const responseString = JSON.parse(cleanedString); // Convert JSON string to object
-      responseThread = responseString.Thread[0];
+
+      if (Array.isArray(responseString.Thread) && responseString.Thread.length > 0 ) {
+        responseThread = responseString.Thread[0];
+      } else {
+        setMessages([]);
+        return;
+      }
     }
     
     const messagesWithComments = responseThread.Messages.map((message) => {
@@ -365,8 +371,8 @@ const Home = ({ setIsAuthenticated }) => {
       return {
         ...message, // Spread existing message properties
         thread_id: threadId,
-        message: message.role !== 'user' ? convertToHtml(decodeString(message.message)) : decodeString(message.message), 
-        comments: associatedComments[0] || [] // Ensure comments is an array
+        message: message.role === 'user'?decodeString(message.message):convertToHtml(decodeString(message.message)) , 
+        comments: associatedComments[0] // Ensure comments is an array
       };
     });
 
