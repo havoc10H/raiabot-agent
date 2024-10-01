@@ -155,6 +155,26 @@ const Home = ({ setIsAuthenticated }) => {
     setRenameThreadId(null);
   };
 
+  const handleDeleteThreadfromDB = async(threadId) => {
+    const data = {
+      'APIKEY': apiKey,
+      'SECRETKEY': secretKey,
+      'loginKey': loginKey,
+      'thread_id': threadId,
+    };
+
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/deleteThread.cfm`, data);
+      
+      if (response.status === 'success') {
+        setThreadList(threadList.filter(oneThread => oneThread.thread_id !== threadId));
+      }
+
+    } catch (error) {
+      console.error(error.response ? error.response.data : error.message);
+    }
+  }
+
   const handleDeleteThread = async(threadId) => {
     if (isLoading)
       return;
@@ -184,28 +204,14 @@ const Home = ({ setIsAuthenticated }) => {
       try {
         const response = await openai.beta.threads.del(threadId);
         if (response.deleted) {
-          const data = {
-            'APIKEY': apiKey,
-            'SECRETKEY': secretKey,
-            'loginKey': loginKey,
-            'thread_id': threadId,
-          };
-      
-          try {
-            const response = await AxiosPostRequest(`${siteUrl}/api/deleteThread.cfm`, data);
-            
-            if (response.status === 'success') {
-              setThreadList(threadList.filter(oneThread => oneThread.thread_id !== threadId));
-            }
-      
-          } catch (error) {
-            console.error(error.response ? error.response.data : error.message);
-          }
+          handleDeleteThreadfromDB(threadId);
         }
       } catch (error) {
         if (error.response && error.response.status === 404) {
           console.log('Thread not found. Please check the threadId:', threadId);
+          handleDeleteThreadfromDB(threadId);
         } else {
+          handleDeleteThreadfromDB(threadId);
           console.error('An error occurred while deleting the thread:', error);
         }
       }
