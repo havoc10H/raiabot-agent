@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThreeDots } from 'react-loader-spinner';
+import { FallingLines } from 'react-loader-spinner';
 import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import OpenAI from 'openai';
@@ -7,7 +7,7 @@ import Swal from 'sweetalert2';
 import config from '../config.json';
 import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
-import { encodeString, decodeString, cleanJsonString } from '../utils/String';
+import { encodeString, decodeString, cleanJsonString, convertToHtml } from '../utils/String';
 
 const Home = ({ setIsAuthenticated }) => {
   const defaultAgentIcon = config.defaultAgentIcon;
@@ -71,8 +71,15 @@ const Home = ({ setIsAuthenticated }) => {
     try {
       const response = await AxiosPostRequest(`${siteUrl}/api/getAgents.cfm`, data);
       if (response.Agents && response.Agents.length > 0) {
-        setAgents(response.Agents);
-        setSelectedAgent(response.Agents[0]);
+        const sortedAgents = response.Agents.sort((a, b) => {
+          // Compare agent names
+          const nameA = a.name.toLowerCase(); // Convert to lowercase for case-insensitive comparison
+          const nameB = b.name.toLowerCase();
+          return nameA.localeCompare(nameB); // Use localeCompare for accurate alphabetical sorting
+        });
+
+        setAgents(sortedAgents);
+        setSelectedAgent(sortedAgents[0]);
       }
     } catch (error) {
       console.error("Error fetching agents:", error);
@@ -174,7 +181,6 @@ const Home = ({ setIsAuthenticated }) => {
        
       if (thread && thread.id === threadId) {
         handleStartNewChat();
-        setThread(null);
       }
 
       const response = await openai.beta.threads.del(threadId);
@@ -208,6 +214,7 @@ const Home = ({ setIsAuthenticated }) => {
   
   const handleStartNewChat = () => {
     setIsSidebarOpen(false);
+    setThread(null);
     setMessage('');
     setMessages([]);
   };
@@ -358,7 +365,7 @@ const Home = ({ setIsAuthenticated }) => {
       return {
         ...message, // Spread existing message properties
         thread_id: threadId,
-        message: decodeString(message.message), // Decode the message
+        message: message.role !== 'user' ? convertToHtml(decodeString(message.message)) : decodeString(message.message), 
         comments: associatedComments[0] || [] // Ensure comments is an array
       };
     });
@@ -819,7 +826,7 @@ const Home = ({ setIsAuthenticated }) => {
           <div className="relative flex-1 flex justify-center md:justify-start" >
             {selectedAgent && (
             <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" onClick={toggleDropdown}>
-              <span className="text-lg font-semibold">{selectedAgent.alias}</span>
+              <span className="text-lg font-semibold">{selectedAgent.name}</span>
               <span className="text-engine-version-text pl-2">
                 {/* {selectedAgent.version} */}
                 <i className="fas fa-chevron-down text-token-text-tertiary pl-2 text-xs"></i>
@@ -874,11 +881,12 @@ const Home = ({ setIsAuthenticated }) => {
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
-                    <p className={`p-2 rounded-xl text-white 
+                    <div className={`p-2 rounded-xl text-white text-md
+                      html-content prose prose-sm sm:prose lg:prose-lg
                       ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}
+                      dangerouslySetInnerHTML={{ __html: msg.message }} 
                     >
-                      {msg.message}
-                    </p>
+                    </div>
 
                     {/* Icons Row */}
                     {msg.role !== 'user' && (
@@ -918,6 +926,9 @@ const Home = ({ setIsAuthenticated }) => {
                 </div>
 
               ))}
+
+              {/* Show loader */}
+              {isLoading && <div className="pl-2" ><FallingLines height="32" width="32" color="white" /></div>} 
             </div>
           </>
         )}
@@ -945,10 +956,8 @@ const Home = ({ setIsAuthenticated }) => {
             </div>
           )}
 
-
           <form onSubmit={handleSubmit} >
-            {/* Show loader */}
-            {isLoading && <ThreeDots height="32" width="32" color="grey" />} 
+        
 
             {/* Input Field and Submit Button in one row */}
             <div className="flex items-center py-2 relative">
