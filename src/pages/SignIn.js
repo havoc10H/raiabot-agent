@@ -61,10 +61,21 @@ export default function SignIn({ setIsAuthenticated }) {
     
   };
 
+  const [realHeight, setRealHeight] = useState(window.innerHeight);
+
+  const handleResize = () => {
+    setRealHeight(window.innerHeight);
+  };
+
+  window.addEventListener('resize', handleResize);
+
   return (
-    <div className="mx-auto flex min-h-dvh w-full min-w-[320px] flex-col bg-sign-background text-white">
+    <div className="mx-auto flex w-full min-w-1/2 flex-col bg-sign-background text-white" style={{ height: realHeight }}>
       <main id="page-content" className="flex max-w-full flex-auto flex-col">
-        <div className="relative mx-auto flex min-h-dvh w-full max-w-10xl items-center justify-center overflow-hidden p-4 lg:p-8">
+        <div 
+          className="relative mx-auto flex w-full max-w-10xl items-center justify-center overflow-hidden p-4 lg:p-8" 
+          style={{ height: realHeight }}
+        >
           <section className="w-full max-w-xl py-6">
             {/* Header */}
             <header className="mb-10 text-center">

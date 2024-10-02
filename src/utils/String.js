@@ -1,54 +1,38 @@
-// Function to encode special characters
+// Function to encode special characters with try-catch
+export const encodeData = (data) => {
+  try {
+    return btoa(unescape(encodeURIComponent(encodeString(data))));
+  } catch (error) {
+    return encodeString(data); // Return null or fallback value if encoding fails
+  }
+};
+
+// Function to decode special characters with try-catch
+export const decodeData = (data) => {
+  try {
+    return decodeString(decodeURIComponent(escape(atob(data))));
+  } catch (error) {
+    return decodeString(data);
+  }
+};
+
 export const encodeString = (str) => {
   return str
-      .replace(/"/g, '&quot;') // Replace double quotes
-      .replace(/'/g, '&apos;') // Replace single quotes
-      .replace(/:/g, '&colon;'); // Replace colons
+    .replace(/"/g, '&quot;') // Replace double quotes
+    .replace(/'/g, '&apos;') // Replace single quotes
+    .replace(/:/g, '&colon;') // Replace colons
+    .replace(/【.*?】/g, '');   // RegEx to find and remove content between 【 and 】
 };
 
 // Function to decode special characters
 export const decodeString = (str) => {
   return str
-      .replace(/&quot;/g, '"') // Decode double quotes
-      .replace(/&apos;/g, "'") // Decode single quotes
-      .replace(/&colon;/g, ':'); // Decode colons
+    .replace(/&quot;/g, '"') // Decode double quotes
+    .replace(/&apos;/g, "'") // Decode single quotes
+    .replace(/&colon;/g, ':') // Decode colons
+    .replace(/【.*?】/g, '');   // RegEx to find and remove content between 【 and 】
 };
 
 export const cleanJsonString = (str) => {
-  return str.replace(/[^\x20-\x7E]/g, ''); // Remove non-printable ASCII characters
-};
-
-export const convertToHtml = (inputText) => {
-  let replacedText = inputText;
-
-  // Rule 1: Replace newlines with <br>
-  replacedText = replacedText.replace(/\n/g, '<br />');
-
-  // Rule 2: Insert <br> before numbers like 1., 2., 3. and "- "
-  replacedText = replacedText.replace(/(?<=\D)(\d+\.\s|\-\s)/g, '<br /><strong>$1</strong>');
-
-  // Rule 3: Make substring from ### to line end has <h1>
-  replacedText = replacedText.replace(/###(.*?)(<br\s*\/?>|$)/g, '<h1 class="text-xl my-1"><strong>$1</strong></h1>');
-
-  // Rule 4: Make substring from ## to line end has <h2>
-  replacedText = replacedText.replace(/##(.*?)(<br\s*\/?>|$)/g, '<h2 class="text-lg my-1"><strong>$1</strong></h2>');
-
-   // Rule 4: Make substring from ## to line end has <h2>
-   replacedText = replacedText.replace(/#(.*?)(<br\s*\/?>|$)/g, '<h3 class="text-md my-1"><strong>$1</strong></h3>');
-
-  // Rule 5: Make substring from ** to ** has <strong>
-  replacedText = replacedText.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-// Rule 6: Make substring from [ to ] have <strong> tags
-replacedText = replacedText.replace(/\[(.+?)\]/g, '<strong>[$1]</strong>');
-
-  // Rule 7: Make (https: ...) to (<a>https...</a>)
-  replacedText = replacedText.replace(/(https?:\/\/[^\s)]+)/g, '<a href="$1" class="text-blue-500 text-lg my-1"> $1 </a>');
-
-  // Rule final: Check if the last character is a question mark and insert <br> after the last period
-  if (replacedText.trim().endsWith('?')) {
-    replacedText = replacedText.replace(/[.!](?=[^.!]*$)/, '$&<br /><br />');
-  }
-
-  return replacedText;
+  return str.replace(/[^\x20-\x7E#\*\-\_\.\/]/g, ''); // Keep printable ASCII and common Markdown characters
 };

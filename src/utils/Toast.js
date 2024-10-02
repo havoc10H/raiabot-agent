@@ -13,7 +13,7 @@ const Toast = ({ message, onClose }) => {
     <div className="fixed bottom-3 left-1/2 transform -translate-x-1/2 p-2 bg-sidebar-background text-white text-sm rounded-xl shadow-md">
         <div className="flex items-center justify-between">
         <span>{message}</span>
-        <button onClick={onClose} className="ml-2 text-white">
+        <button onClick={onClose} className="ml-2 text-white bg-transparent">
             &times; {/* Close icon */}
         </button>
         </div>

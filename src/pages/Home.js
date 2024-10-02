@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThreeDots } from 'react-loader-spinner';
+import { ThreeDots, BallTriangle } from 'react-loader-spinner';
 import { useNavigate, Link } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
+import ReactMarkdown from 'react-markdown';
 import OpenAI from 'openai';
 import Swal from 'sweetalert2';
 import config from '../config.json';
 import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
-import { encodeString, decodeString, cleanJsonString, convertToHtml } from '../utils/String';
+import { encodeData, decodeData, cleanJsonString } from '../utils/String';
 
 const Home = ({ setIsAuthenticated }) => {
   const defaultAgentIcon = config.defaultAgentIcon;
@@ -26,8 +27,8 @@ const Home = ({ setIsAuthenticated }) => {
       cancelButtonText: 'No, cancel',
       customClass: {
         confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', // Custom delete button
-        cancelButton: 'bg-threeoptions-background hover:threeoptions-hover text-white text-sm', // Custom cancel button
-        popup: 'border border-custom-bother-gray w-full md:w-2/5', // Smaller popup size with padding
+        cancelButton: 'bg-threeoptions-background hover:bg-threeoptions-hover text-white text-sm', // Custom cancel button
+        popup: 'border border-custom-bother-gray w-full sm:w-3/4 md:w-2/5 p-4', // Full width on mobile, smaller on larger screens
       },
     });
 
@@ -251,7 +252,12 @@ const Home = ({ setIsAuthenticated }) => {
 
 
   const handleStartChat = async (newMessage, isSuggestion = false) => {
-    const newMessages = [...messages, { message: newMessage, role: 'user' }];
+    const newMessages = [...messages, 
+      { 
+        message: newMessage, 
+        role: 'user' 
+      }
+    ];
     setMessages(newMessages);
     setMessage('');
 
@@ -260,10 +266,10 @@ const Home = ({ setIsAuthenticated }) => {
     const { replyText, message_id, thread_id } = await sendMessage(newMessage, isSuggestion);
     setMessages(prevMessages => [...prevMessages, 
       { 
-        message: convertToHtml(replyText), 
-        role: 'assistant',
+        message: decodeData(replyText),
         message_id: message_id,
-        thread_id: thread_id
+        thread_id: thread_id,
+        role: 'assistant',
       }
     ]);
 
@@ -271,15 +277,7 @@ const Home = ({ setIsAuthenticated }) => {
   }
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [realHeight, setRealHeight] = useState(window.innerHeight);
-
-  const handleResize = () => {
-    setIsMobile(window.innerWidth < 1024);
-    setRealHeight(window.innerHeight);
-  };
-
-  window.addEventListener('resize', handleResize);
-
+  
   const suggestionsToDisplay = isMobile ? mobileSuggestions : webSuggestions;
   const suggestionDescsToDisplay = isMobile ? mobileSuggestionDescs : webSuggestionDescs;
 
@@ -297,6 +295,8 @@ const Home = ({ setIsAuthenticated }) => {
   const [threadList, setThreadList] = useState(null);
 
   const getThreadsList = async () => {
+    setGlobalLoading(true);
+
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -315,8 +315,11 @@ const Home = ({ setIsAuthenticated }) => {
       const categorized = categorizeThreadsByDate(filteredResponse); // Categorize threads after fetching
       setCategorizedThreads(categorized); // Update categorized threads state
 
+      setGlobalLoading(false);
     } catch (error) {
       console.error(error.response ? error.response.data : error.message);
+      setGlobalLoading(false);
+
     }
   }
 
@@ -359,6 +362,8 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const getThread = async (threadId) => {
+    setGlobalLoading(true);
+
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -380,10 +385,12 @@ const Home = ({ setIsAuthenticated }) => {
           responseThread = responseString.Thread[0];
         } else {
           setMessages([]);
+          setGlobalLoading(false);
           return;
         }
       } else {
         setMessages([]);
+        setGlobalLoading(false);
         return;
       }
     }
@@ -395,7 +402,7 @@ const Home = ({ setIsAuthenticated }) => {
       return {
         ...message, // Spread existing message properties
         thread_id: threadId,
-        message: message.role === 'user'?decodeString(message.message):convertToHtml(decodeString(message.message)) , 
+        message: message.role==='user'?message.message:decodeData(message.message),
         comments: associatedComments[0] // Ensure comments is an array
       };
     });
@@ -405,6 +412,7 @@ const Home = ({ setIsAuthenticated }) => {
     });
 
     setMessages(messagesWithComments);
+    setGlobalLoading(false);
   }
 
   const openThread = async (selectedThread) => {
@@ -471,7 +479,7 @@ const Home = ({ setIsAuthenticated }) => {
 
           const assistantMessageData = assistantMessage.data[0];
           const replyText = assistantMessageData.content[0].text.value; 
-          saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, replyText, assistantMessageData.role);
+          saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, encodeData(replyText), assistantMessageData.role);
 
           return {
             replyText: replyText,
@@ -498,9 +506,11 @@ const Home = ({ setIsAuthenticated }) => {
       'message_id': message_id,
       'created_at': message_created_at,
       'run_id': run_id,
-      'message': encodeString(messageContent),
+      'message': messageContent,
       'role': role,
     };
+
+    
 
     try {
       await AxiosPostRequest(`${siteUrl}/api/saveMessage.cfm`, data);
@@ -572,7 +582,13 @@ const Home = ({ setIsAuthenticated }) => {
 
   const copyToClipboard = async (copyText) => {
     try {
-      await navigator.clipboard.writeText(copyText);
+      const textArea = document.createElement("textarea");
+      textArea.value = copyText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+  
       setToastMessage("Copied to clipboard!");
       setShowToast(true);
     } catch (err) {
@@ -689,7 +705,7 @@ const Home = ({ setIsAuthenticated }) => {
               autoFocus
             />
           ) : (
-            <h2 className="truncate mr-2 w-full"  onClick={() => openThread(oneThread)} >{oneThread.message}</h2>
+            <h2 className="truncate mr-2 w-full" onClick={() => openThread(oneThread)} >{oneThread.message}</h2>
           )}
           
           <div 
@@ -732,12 +748,30 @@ const Home = ({ setIsAuthenticated }) => {
       ))}
     </div>
   );
+  
+  const [realHeight, setRealHeight] = useState(window.innerHeight);
+
+  const handleResize = () => {
+    setIsMobile(window.innerWidth < 1024);
+    setRealHeight(window.innerHeight);
+  };
+
+  window.addEventListener('resize', handleResize);
+
+  const [globalLoading, setGlobalLoading] = useState(false);
 
   return (
-    <div className="flex" style={{ height: realHeight }}>
-      {isCommentModalOpen && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-        <div className="bg-dialog-background p-3 rounded shadow-lg mx-8 w-full md:w-1/3">
+    <>
+    {/* Show loader */}
+    {globalLoading && (
+      <div className="fixed inset-0 flex items-center justify-center z-100 bg-black opacity-75 w-full" style={{ height: realHeight }}>
+        <BallTriangle height="72" width="72" color="white" />
+      </div>
+    )}
+
+    {isCommentModalOpen && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 h-screen w-full">
+        <div className="bg-dialog-background p-3 rounded shadow-lg mx-4 w-full md:w-1/3">
           <h2 className="text-lg font-semibold mb-4 text-white">Write Comment</h2>
           <textarea
             value={comment}
@@ -767,12 +801,18 @@ const Home = ({ setIsAuthenticated }) => {
           </div>
         </div>
       </div>
-      )}
+    )}
 
+    <div className="flex" style={{ height: realHeight }}>
+    
       {/* Left Sidebar */}
       <div
         className={`fixed inset-y-0 z-50 w-3/4 md:w-1/3 bg-sidebar-background text-white p-3 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out md:relative md:translate-x-0 flex flex-col`}
       >
+        {globalLoading && (
+          <div className="fixed inset-0 flex items-center justify-center z-100 bg-black opacity-75 w-full" style={{ height: realHeight }}>
+          </div>
+        )}
         {/* App Icon, New Chat */}
         <div className="flex items-center justify-between p-2 rounded-lg hover:bg-custom-hover-gray cursor-pointer" >
           <i 
@@ -848,14 +888,21 @@ const Home = ({ setIsAuthenticated }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col bg-main-background px-3">
+      <div className="flex-1 flex flex-col bg-main-background md:px-3">
+        
         {/* Top Header for Mobile */}
         <div className="flex items-center justify-between border-b-2 border-sidebar-background md:border-0 p-3 text-white">
           <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
           <div className="relative flex-1 flex justify-center md:justify-start" >
             {selectedAgent && (
-            <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" onClick={toggleDropdown}>
+            <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" 
+              onClick={() => {
+                if (!globalLoading) {
+                  toggleDropdown();
+                }
+              }}
+            >
               <span className="text-lg font-semibold">{selectedAgent.name}</span>
               <span className="text-engine-version-text pl-2">
                 {/* {selectedAgent.version} */}
@@ -907,15 +954,15 @@ const Home = ({ setIsAuthenticated }) => {
         ) : (
           <>
             {/* Chat Messages Area */}
-            <div className="flex-1 p-3 overflow-y-auto md:mt-4" ref={scrollRef}>
+            <div className="flex-1 p-2 overflow-y-auto md:mt-4" ref={scrollRef}>
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
                     <div className={`p-2 rounded-xl text-white text-md
-                      html-content prose prose-sm sm:prose lg:prose-lg
-                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}
-                      dangerouslySetInnerHTML={{ __html: msg.message }} 
-                    >
+                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
+                        <ReactMarkdown>
+                            {msg.message}
+                        </ReactMarkdown>
                     </div>
 
                     {/* Icons Row */}
@@ -924,29 +971,29 @@ const Home = ({ setIsAuthenticated }) => {
                         {msg.comments ? (
                           msg.comments.isThumbsUp === "1" ? (
                             // Show thumbs up icon if user liked the comment
-                            <button className="p-2 rounded-full">
+                            <button className="p-2 rounded-full bg-transparent">
                               <i className="fas fa-thumbs-up"></i>
                               <span className="pl-1 text-xs">{msg.comments.comment}</span>
                             </button>
                           ) : (
-                            <button className="p-2 rounded-full">
+                            <button className="p-2 rounded-full bg-transparent">
                               <i className="fas fa-thumbs-down"></i>
                               <span className="pl-1 text-xs">{msg.comments.comment}</span>
                             </button>
                           )
                         ) : (
                           <>
-                          <button className="p-2 rounded-full" onClick={() => writeComment(msg.thread_id, msg.message_id, true)}>
+                          <button className="p-2 rounded-full bg-transparent" onClick={() => writeComment(msg.thread_id, msg.message_id, true)}>
                             <i className="far fa-thumbs-up"></i>
                           </button>
-                          <button className="p-2 rounded-full" onClick={() => writeComment(msg.thread_id, msg.message_id, false)}>
+                          <button className="p-2 rounded-full bg-transparent" onClick={() => writeComment(msg.thread_id, msg.message_id, false)}>
                             <i className="far fa-thumbs-down"></i>
                           </button>
                           </>
                         )}
                         
                         {/* Copy Icon */}
-                        <button className="p-1 rounded-full" onClick={() => copyToClipboard(msg.message)}>
+                        <button className="p-1 rounded-full bg-transparent" onClick={() => copyToClipboard(msg.message)}>
                           <i className="far fa-copy"></i>
                         </button>
                         {showToast && <Toast message={toastMessage} onClose={handleCloseToast} />}
@@ -963,7 +1010,7 @@ const Home = ({ setIsAuthenticated }) => {
           </>
         )}
 
-        <div className="flex-shrink-0 flex flex-col p-3 md:px-16">
+        <div className="flex-shrink-0 flex flex-col px-1 md:px-3 py-3 md:px-8">
           {/* Suggestions Grid - Only show if no messages exist */}
           {messages.length === 0 && (
             <div className="grid lg:grid-cols-2 gap-3">
@@ -987,8 +1034,6 @@ const Home = ({ setIsAuthenticated }) => {
           )}
 
           <form onSubmit={handleSubmit} >
-        
-
             {/* Input Field and Submit Button in one row */}
             <div className="flex items-center py-2 relative">
               <input
@@ -996,22 +1041,24 @@ const Home = ({ setIsAuthenticated }) => {
                 value={message} 
                 onChange={(e) => setMessage(e.target.value)} 
                 disabled={isLoading}
-                className="flex-1 p-3 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text pr-12" // Add padding right for the button
+                className="flex-1 p-2 md:pr-12 border rounded-lg bg-transparent border-suggestion-border text-white focus:outline-none placeholder-suggestion-decription-text" // Add padding right for the button
                 placeholder="Ask me anything ..."
               />
               {/* Submit Button */}
-              <button type="submit" disabled={isLoading || !message.trim()} className="absolute right-2 top-5 p-1 bg-button-background text-black rounded-lg flex items-center">
+              <button type="submit" disabled={isLoading || !message.trim()} className="absolute right-2 top-4 p-1 bg-button-background text-black rounded-lg flex items-center">
                 <i className="fas fa-arrow-up icon-sm text-token-text-primary"></i>
               </button>
             </div>
 
-            <div className="flex items-center justify-center py-2">
+            <div className="flex items-center justify-center py-2 px-1">
               <span className="text-sm font-normal text-white md:font-light md:text-xs">A.I. can make mistakes. Consider checking important information.</span>
             </div>
           </form>
         </div>
       </div>
     </div>
+
+    </>
   );
 };
 
