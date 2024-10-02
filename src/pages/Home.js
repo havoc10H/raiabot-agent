@@ -10,6 +10,7 @@ import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
 import { encodeData, decodeData, cleanJsonString } from '../utils/String';
 import '../Markdown.css'; // Import your CSS file
+import { da } from 'date-fns/locale';
 
 const Home = ({ setIsAuthenticated }) => {
   const defaultAgentIcon = config.defaultAgentIcon;
@@ -96,6 +97,10 @@ const Home = ({ setIsAuthenticated }) => {
   const [messages, setMessages] = useState([]);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const selectRaiaHelpAgent = () => {
+    // handleAgentChange();
+  }
 
   const handleAgentChange = (agent) => {
     setSelectedAgent(agent);
@@ -520,15 +525,8 @@ const Home = ({ setIsAuthenticated }) => {
       console.error(error.response ? error.response.data : error.message);
     }
   }
-  const [commentThreadId, setCommentThreadId] = useState(null);
-  const [commentMessageId, setCommentMessageId] = useState(null);
-  const [commentThumbsUp, setCommentThumbsUp] = useState(true);
 
   const writeComment = async(threadId, messageId, isThumbsUp) => {
-    setCommentThreadId(threadId);
-    setCommentMessageId(messageId);
-    setCommentThumbsUp(isThumbsUp);
-
     Swal.fire({
       title: '<h2 class="text-lg text-white">Write comment...</h2>',
       background: '#2B3544', // Dark background
@@ -550,13 +548,13 @@ const Home = ({ setIsAuthenticated }) => {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        handleSaveComment(result.value);
+        handleSaveComment(threadId, messageId, isThumbsUp, result.value);
       }
     });
 
   }
 
-  const handleSaveComment = async(comment) => {
+  const handleSaveComment = async(commentThreadId, commentMessageId, commentThumbsUp, comment) => {
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -571,13 +569,14 @@ const Home = ({ setIsAuthenticated }) => {
 
     try {
       await AxiosPostRequest(`${siteUrl}/api/newComment.cfm`, data);
-      
+
       setMessages((prevMessages) =>
         prevMessages.map((msg) => {
           if (msg.message_id === commentMessageId && msg.thread_id === commentThreadId) {
             const updatedComments = msg.comments
-              ? { ...msg.comments, isThumbsUp: commentThumbsUp ? "1" : "0", comment: data.comment } // Update thumbs up state
-              : { isThumbsUp: commentThumbsUp ? "1" : "0", comment: data.comment}; // Create new comments if none exist
+              ? { ...msg.comments, isThumbsUp: commentThumbsUp ? "1" : "0", comment: comment } // Update thumbs up state
+              : { isThumbsUp: commentThumbsUp ? "1" : "0", comment: comment}; // Create new comments if none exist
+
             return { ...msg, comments: updatedComments }; // Return updated message
           }
           return msg; // Return unchanged message
@@ -838,19 +837,18 @@ const Home = ({ setIsAuthenticated }) => {
           )}
         </div>
 
-
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
-          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div onClick={() => selectRaiaHelpAgent()} className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
             <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
-            <Link to={siteUrl}>
+            <div>
               <h1 className="text-sm font-normal text-white">ask raia</h1>
               <p className="text-xs font-normal text-custom-text-gray">
                 Do you need help?
               </p>
-            </Link>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer"

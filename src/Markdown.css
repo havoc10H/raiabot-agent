@@ -12,6 +12,11 @@
     color: #fff !important; /* Apply the same color to all matching elements */
 }
 
+.prose a {
+    color: #3b82f6 !important; /* Apply the same color to all matching elements */
+}
+
+
 .prose li {
     margin: 0 !important; /* Reset margin for list items */
 }
