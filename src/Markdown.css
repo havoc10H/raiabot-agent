@@ -1,21 +1,28 @@
-li::marker {
-    color: #fff !important; /* Inherit the color for list item markers */
+.prose * {
+ font-size: 1em !important;
 }
 
-li p{
-    color: #fff !important; /* Inherit the color for list item markers */
+.prose li::marker,
+.prose li,
+.prose p,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose strong {
+    color: #fff !important; /* Apply the same color to all matching elements */
 }
 
-li > p > strong {
-    color: #fff !important; /* Set the color for strong elements */
-}
-li > strong {
-    color: #fff !important; /* Set the color for strong elements */
+.prose li {
+    margin: 0 !important; /* Reset margin for list items */
 }
 
-p,
-li,
-ul,
-ol {
-    margin: 0.1em !important; /* Set a uniform margin for all elements */
+.prose p,
+.prose ul,
+.prose ol,
+.prose h1,
+.prose h2,
+.prose h3,
+.prose strong {
+    margin-top: 0.1em !important; /* Set a uniform top margin */
+    margin-bottom: 0.1em !important; /* Set a uniform bottom margin */
 }

@@ -18,15 +18,16 @@ export default function SignIn({ setIsAuthenticated }) {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const showSignInError = () => {
+  const showSignInError = (errorText) => {
     Swal.fire({
       title: '<h2 class="text-lg text-white">Sign In Failed</h2>',
+      html: `<p class="text-md text-gray-200">${errorText}</p>`, // Inject errorText here
       icon: null,
-      background: '#1F2937', // Dark background
+      background: '#2B3544', // Dark background
       confirmButtonText: 'Try again!',
       customClass: {
-        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', 
-        popup: 'border border-custom-bother-gray w-full sm:w-1/2 md:w-2/5 p-4', // Full width on mobile, smaller on larger screens
+        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', 
+        popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
     });
   }
@@ -66,12 +67,12 @@ export default function SignIn({ setIsAuthenticated }) {
 
         navigate('/');
       } else {
-        showSignInError();
+        showSignInError('Invalid username or password.');
         // console.error('Invalid response data:', response.data);
       }
     })
     .catch((error) => {
-      showSignInError();
+      showSignInError('Invalid username or password.');
       // console.error('Error signing in:', error.response ? error.response.data : error.message);
     });
     

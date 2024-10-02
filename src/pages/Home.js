@@ -18,7 +18,6 @@ const Home = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
 
   const handleSignout = async () => {
-    
     const result = await Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to sign out?</h2>',
       icon: null,
@@ -27,9 +26,9 @@ const Home = ({ setIsAuthenticated }) => {
       confirmButtonText: 'Yes, sign out!!',
       cancelButtonText: 'No, cancel',
       customClass: {
-        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', // Custom delete button
-        cancelButton: 'bg-threeoptions-background hover:bg-threeoptions-hover text-white text-sm', // Custom cancel button
-        popup: 'border border-custom-bother-gray w-full sm:w-3/4 md:w-2/5 p-4', // Full width on mobile, smaller on larger screens
+        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', // Custom delete button
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
     });
 
@@ -125,6 +124,7 @@ const Home = ({ setIsAuthenticated }) => {
   const handleRename = (threadId, currentName) => {
     if (isLoading)
       return;
+
     setRenameThreadId(threadId); // Set the thread being renamed
     setNewThreadName(currentName); // Set the current name as default in the input
   };
@@ -158,6 +158,7 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const handleDeleteThreadfromDB = async(threadId) => {
+ 
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -180,20 +181,21 @@ const Home = ({ setIsAuthenticated }) => {
   const handleDeleteThread = async(threadId) => {
     if (isLoading)
       return;
+
     toggleHistoryDropdown(null);
 
     const result = await Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to delete this thread?</h2>',
-      html: '<p class="text-md text-gray-400">You won\'t be able to revert this!</p>',
+      html: '<p class="text-md text-gray-200">You won\'t be able to revert this!</p>',
       icon: null,
       background: '#2B3544', // Dark background
       showCancelButton: true,
       confirmButtonText: 'Yes, delete it!',
       cancelButtonText: 'No, cancel',
       customClass: {
-        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', // Custom delete button
-        cancelButton: 'bg-threeoptions-background hover:threeoptions-hover text-white text-sm', // Custom cancel button
-        popup: 'border border-custom-bother-gray w-full md:w-2/5', // Smaller popup size with padding
+        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', // Custom delete button
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
     });
 
@@ -430,7 +432,6 @@ const Home = ({ setIsAuthenticated }) => {
 
     setIsSidebarOpen(false);
 
-    handleCancelComment();
   }
 
   const sendMessage = async (userMessageContent, isSuggestion = false) => {
@@ -519,10 +520,6 @@ const Home = ({ setIsAuthenticated }) => {
       console.error(error.response ? error.response.data : error.message);
     }
   }
-
-  const [isCommentModalOpen, setCommentModalOpen] = useState(false);
-  const [comment, setComment] = useState('');
-
   const [commentThreadId, setCommentThreadId] = useState(null);
   const [commentMessageId, setCommentMessageId] = useState(null);
   const [commentThumbsUp, setCommentThumbsUp] = useState(true);
@@ -532,10 +529,34 @@ const Home = ({ setIsAuthenticated }) => {
     setCommentMessageId(messageId);
     setCommentThumbsUp(isThumbsUp);
 
-    setCommentModalOpen(true); // Open the modal
+    Swal.fire({
+      title: '<h2 class="text-lg text-white">Write comment...</h2>',
+      background: '#2B3544', // Dark background
+      input: 'textarea', // Set the input type to textarea
+      inputPlaceholder: 'Write your thoughts here...',
+      showCancelButton: true,
+      confirmButtonText: '&nbsp;Save&nbsp;',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        confirmButton: 'bg-blue-500 hover:bg-blue-700 text-white text-sm px-6', // Custom delete button
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        popup: 'p-2', 
+      },
+      didOpen: () => {
+        const textarea = Swal.getInput();
+        if (textarea) {
+          textarea.classList.add('text-white', 'text-sm', 'bg-gray-800', 'border', 'border-gray-600', 'p-2', 'rounded');
+        }
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        handleSaveComment(result.value);
+      }
+    });
+
   }
 
-  const handleSaveComment = async() => {
+  const handleSaveComment = async(comment) => {
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -566,17 +587,8 @@ const Home = ({ setIsAuthenticated }) => {
     } catch (error) {
       console.error("Error fetching agents:", error);
     }
-
-    setCommentModalOpen(false);
-    setComment('');
   };
 
-  const handleCancelComment = () => {
-    setCommentModalOpen(false); // Close modal
-    setCommentThreadId(null);
-    setCommentMessageId(null);
-    setComment(''); // Clear the comment input
-  };
 
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
@@ -767,40 +779,6 @@ const Home = ({ setIsAuthenticated }) => {
     {globalLoading && (
       <div className="fixed inset-0 flex items-center justify-center z-100 bg-black opacity-75 w-full" style={{ height: realHeight }}>
         <BallTriangle height="72" width="72" color="white" />
-      </div>
-    )}
-
-    {isCommentModalOpen && (
-      <div className="fixed inset-0 flex items-center justify-center z-50 h-screen w-full">
-        <div className="bg-dialog-background p-3 rounded shadow-lg mx-4 w-full md:w-1/3">
-          <h2 className="text-lg font-semibold mb-4 text-white">Write Comment</h2>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Enter your comment here..."
-            rows="5"
-            className="w-full bg-transparent text-white border border-gray-300 rounded p-2 mb-4"
-          />
-          <div className="flex justify-between">
-            <button 
-              onClick={handleSaveComment}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Save&nbsp;
-              {/* {commentThumbsUp ? (
-                <i className="far fa-thumbs-up"></i>
-              ) : (
-                <i className="far fa-thumbs-down"></i>
-              )} */}
-            </button>
-            <button 
-              onClick={handleCancelComment}
-              className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
       </div>
     )}
 

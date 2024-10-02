@@ -25,7 +25,7 @@ module.exports = {
         'sign-background': '#111827',
         'sign-dialog-background': '#1F2937',
         'sign-dialog-footer-background': '#2B3544',
-        'dialog-background': '#1F2937',
+        'dialog-background': '#2B3544',
       },
     },
   },
