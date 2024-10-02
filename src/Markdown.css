@@ -1,0 +1,21 @@
+li::marker {
+    color: #fff !important; /* Inherit the color for list item markers */
+}
+
+li p{
+    color: #fff !important; /* Inherit the color for list item markers */
+}
+
+li > p > strong {
+    color: #fff !important; /* Set the color for strong elements */
+}
+li > strong {
+    color: #fff !important; /* Set the color for strong elements */
+}
+
+p,
+li,
+ul,
+ol {
+    margin: 0.1em !important; /* Set a uniform margin for all elements */
+}

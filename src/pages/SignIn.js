@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import qs from "qs";
+import Swal from 'sweetalert2';
 import config from '../config.json';
 
 export default function SignIn({ setIsAuthenticated }) {
@@ -16,6 +17,19 @@ export default function SignIn({ setIsAuthenticated }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+
+  const showSignInError = () => {
+    Swal.fire({
+      title: '<h2 class="text-lg text-white">Sign In Failed</h2>',
+      icon: null,
+      background: '#1F2937', // Dark background
+      confirmButtonText: 'Try again!',
+      customClass: {
+        confirmButton: 'bg-delete-color hover:bg-red-700 text-white text-sm', 
+        popup: 'border border-custom-bother-gray w-full sm:w-1/2 md:w-2/5 p-4', // Full width on mobile, smaller on larger screens
+      },
+    });
+  }
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -52,11 +66,13 @@ export default function SignIn({ setIsAuthenticated }) {
 
         navigate('/');
       } else {
-        console.error('Invalid response data:', response.data);
+        showSignInError();
+        // console.error('Invalid response data:', response.data);
       }
     })
     .catch((error) => {
-      console.error('Error signing in:', error.response ? error.response.data : error.message);
+      showSignInError();
+      // console.error('Error signing in:', error.response ? error.response.data : error.message);
     });
     
   };

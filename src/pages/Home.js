@@ -9,6 +9,7 @@ import config from '../config.json';
 import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
 import { encodeData, decodeData, cleanJsonString } from '../utils/String';
+import '../Markdown.css'; // Import your CSS file
 
 const Home = ({ setIsAuthenticated }) => {
   const defaultAgentIcon = config.defaultAgentIcon;
@@ -20,8 +21,8 @@ const Home = ({ setIsAuthenticated }) => {
     
     const result = await Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to sign out?</h2>',
-      icon: 'warning',
-      background: '#1F2937', // Dark background
+      icon: null,
+      background: '#2B3544', // Dark background
       showCancelButton: true,
       confirmButtonText: 'Yes, sign out!!',
       cancelButtonText: 'No, cancel',
@@ -183,9 +184,9 @@ const Home = ({ setIsAuthenticated }) => {
 
     const result = await Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to delete this thread?</h2>',
-      html: '<p class="text-sm text-gcustom-text-gray">You won\'t be able to revert this!</p>',
-      icon: 'warning',
-      background: '#1F2937', // Dark background
+      html: '<p class="text-md text-gray-400">You won\'t be able to revert this!</p>',
+      icon: null,
+      background: '#2B3544', // Dark background
       showCancelButton: true,
       confirmButtonText: 'Yes, delete it!',
       cancelButtonText: 'No, cancel',
@@ -786,11 +787,11 @@ const Home = ({ setIsAuthenticated }) => {
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
             >
               Save&nbsp;
-              {commentThumbsUp ? (
+              {/* {commentThumbsUp ? (
                 <i className="far fa-thumbs-up"></i>
               ) : (
                 <i className="far fa-thumbs-down"></i>
-              )}
+              )} */}
             </button>
             <button 
               onClick={handleCancelComment}
@@ -836,7 +837,7 @@ const Home = ({ setIsAuthenticated }) => {
           </div>
           )}
           <i 
-            className="fas fa-pencil-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }}
+            className="far fa-comment-alt text-md cursor-pointer" style={{ width: '18px', height: '18px' }}
             onClick={() => {
               handleStartNewChat(); 
               toggleHistoryDropdown(null); // Toggle the dropdown visibility
@@ -958,9 +959,9 @@ const Home = ({ setIsAuthenticated }) => {
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
-                    <div className={`p-2 rounded-xl text-white text-md
+                    <div className={`p-2 rounded-xl text-white prose
                       ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
-                        <ReactMarkdown>
+                         <ReactMarkdown>
                             {msg.message}
                         </ReactMarkdown>
                     </div>
