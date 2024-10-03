@@ -6,11 +6,11 @@ import Home from "./pages/Home";
 
 function App() {
 
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('raia-loginKey'));
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('raia-loginUser'));
 
   useEffect(() => {
     const checkAuth = () => {
-      setIsAuthenticated(!!localStorage.getItem('raia-loginKey'));
+      setIsAuthenticated(!!localStorage.getItem('raia-loginUser'));
     };
     checkAuth();
   }, []);

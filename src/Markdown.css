@@ -8,6 +8,7 @@
 .prose h1,
 .prose h2,
 .prose h3,
+.prose code,
 .prose strong {
     color: #fff !important; /* Apply the same color to all matching elements */
 }

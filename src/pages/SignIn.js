@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-import qs from "qs";
 import Swal from 'sweetalert2';
+import AxiosPostRequest from '../utils/AxiosPostRequest'; 
 import config from '../config.json';
 
 export default function SignIn({ setIsAuthenticated }) {
@@ -35,47 +34,29 @@ export default function SignIn({ setIsAuthenticated }) {
   const handleSignIn = async (e) => {
     e.preventDefault();
 
-    const data = qs.stringify({
+    const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
       'USERNAME': username,
       'PASSWORD': password,
-    });
-    
-    const config = {
-      method: 'post',
-      url: siteUrl + "/api/getUser.cfm",
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      data: data,
     };
     
-    axios.request(config)
-    .then((response) => {
-      const responseData = response.data[0];
+    try {
+      const response = await AxiosPostRequest(`${siteUrl}/api/getUser.cfm`, data);
 
-      if (responseData) {
-
-        const loginKey = responseData.loginKey;
-        const loginUsername = `${responseData.firstName} ${responseData.lastName}`;
-  
-        localStorage.setItem('raia-loginKey', loginKey);
-        localStorage.setItem('raia-loginUsername', loginUsername);
-
+      if (response.length > 0) {
+        const responseData = response[0];
+        localStorage.setItem('raia-loginUser', JSON.stringify(responseData));
         setIsAuthenticated(true);
-
         navigate('/');
       } else {
         showSignInError('Invalid username or password.');
         // console.error('Invalid response data:', response.data);
       }
-    })
-    .catch((error) => {
+    } catch (error) {
       showSignInError('Invalid username or password.');
       // console.error('Error signing in:', error.response ? error.response.data : error.message);
-    });
-    
+    }
   };
 
   const [realHeight, setRealHeight] = useState(window.innerHeight);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThreeDots, BallTriangle } from 'react-loader-spinner';
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { differenceInCalendarDays, isToday, isYesterday } from 'date-fns'; // Import date functions
 import ReactMarkdown from 'react-markdown';
 import OpenAI from 'openai';
@@ -10,50 +10,56 @@ import Toast from '../utils/Toast';
 import AxiosPostRequest from '../utils/AxiosPostRequest'; 
 import { encodeData, decodeData, cleanJsonString } from '../utils/String';
 import '../Markdown.css'; // Import your CSS file
-import { da } from 'date-fns/locale';
 
 const Home = ({ setIsAuthenticated }) => {
+  const apiKey  = config.apiKey;
+  const secretKey = config.secretKey;
+  const raiaAsisstantId = config.raiaAssistantId;
+
+  const loginUser = JSON.parse(localStorage.getItem('raia-loginUser'));
+  const loginKey = loginUser.loginKey;
+  const loginUsername = loginUser.firstName + " " + loginUser.lastName;
+  const loginEmail = loginUser.email;
+
   const defaultAgentIcon = config.defaultAgentIcon;
   const siteUrl = config.siteUrl;
 
   const navigate = useNavigate();
 
   const handleSignout = async () => {
-    const result = await Swal.fire({
+    Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to sign out?</h2>',
       icon: null,
       background: '#2B3544', // Dark background
       showCancelButton: true,
-      confirmButtonText: 'Yes, sign out!!',
+      confirmButtonText: 'Yes, sign out!',
       cancelButtonText: 'No, cancel',
       customClass: {
         confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', // Custom delete button
         cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
         popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
+    })
+    .then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('raia-loginUser'); // Replace with your specific keys
+        setIsAuthenticated(false);
+        navigate('/');
+      }
     });
-
-    if (result.isConfirmed) {
-       
-      localStorage.removeItem('raia-loginKey'); // Replace with your specific keys
-      localStorage.removeItem('raia-loginUsername'); // Example of another item to remove
-    
-      setIsAuthenticated(false);
-
-      navigate('/');
-    }
   };
-
-  const apiKey  = config.apiKey;
-  const secretKey = config.secretKey;
-
-  const loginKey = localStorage.getItem('raia-loginKey');
-  const loginUsername = localStorage.getItem('raia-loginUsername');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [agents, setAgents] = useState([]);
   const [selectedAgent, setSelectedAgent] = useState();
+
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredAgents = agents.filter((agent) =>
+    agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    agent.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const hasAgentsFetched = useRef(false); // Create a ref to track fetch status
   
@@ -99,13 +105,17 @@ const Home = ({ setIsAuthenticated }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const selectRaiaHelpAgent = () => {
-    // handleAgentChange();
+    const foundAgent = agents.find(agent => agent.openai_assistant_id === raiaAsisstantId);
+    if (foundAgent) {
+      handleAgentChange(foundAgent);
+    } else {
+      
+    }
   }
 
   const handleAgentChange = (agent) => {
     setSelectedAgent(agent);
-    toggleDropdown();
-
+    setIsDropdownOpen(false);
     handleStartNewChat();
   };
 
@@ -163,7 +173,6 @@ const Home = ({ setIsAuthenticated }) => {
   };
 
   const handleDeleteThreadfromDB = async(threadId) => {
- 
     const data = {
       'APIKEY': apiKey,
       'SECRETKEY': secretKey,
@@ -183,13 +192,29 @@ const Home = ({ setIsAuthenticated }) => {
     }
   }
 
+  const handleDeleteThreadfromOpenAI = async(threadId) => {
+    try {
+      const response = await openai.beta.threads.del(threadId);
+      if (response.deleted) {
+        handleDeleteThreadfromDB(threadId);
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log('Thread not found. Please check the threadId:', threadId);
+        handleDeleteThreadfromDB(threadId);
+      } else {
+        handleDeleteThreadfromDB(threadId);
+        console.error('An error occurred while deleting the thread:', error);
+      }
+    }
+  }
+
   const handleDeleteThread = async(threadId) => {
     if (isLoading)
       return;
-
     toggleHistoryDropdown(null);
 
-    const result = await Swal.fire({
+    Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to delete this thread?</h2>',
       html: '<p class="text-md text-gray-200">You won\'t be able to revert this!</p>',
       icon: null,
@@ -202,29 +227,15 @@ const Home = ({ setIsAuthenticated }) => {
         cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
         popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
+    }) 
+    .then((result) => {
+      if (result.isConfirmed) {
+        if (thread && thread.id === threadId) {
+          handleStartNewChat();
+        }
+        handleDeleteThreadfromOpenAI(threadId);
+      }
     });
-
-    if (result.isConfirmed) {
-       
-      if (thread && thread.id === threadId) {
-        handleStartNewChat();
-      }
-
-      try {
-        const response = await openai.beta.threads.del(threadId);
-        if (response.deleted) {
-          handleDeleteThreadfromDB(threadId);
-        }
-      } catch (error) {
-        if (error.response && error.response.status === 404) {
-          console.log('Thread not found. Please check the threadId:', threadId);
-          handleDeleteThreadfromDB(threadId);
-        } else {
-          handleDeleteThreadfromDB(threadId);
-          console.error('An error occurred while deleting the thread:', error);
-        }
-      }
-    }
   };
 
   const [mobileSuggestions, setMobileSuggestions] = useState([]);
@@ -239,7 +250,7 @@ const Home = ({ setIsAuthenticated }) => {
     setMessages([]);
   };
 
-  const handleSubmit = async (e) => {
+  const handleNewMessageSubmit = async (e) => {
     e.preventDefault();
     handleStartChat(message);
   };
@@ -772,6 +783,8 @@ const Home = ({ setIsAuthenticated }) => {
 
   const [globalLoading, setGlobalLoading] = useState(false);
 
+  const [userMenu, setUserMenu] = useState(false);
+
   return (
     <>
     {/* Show loader */}
@@ -839,7 +852,7 @@ const Home = ({ setIsAuthenticated }) => {
 
         {/* User Info at the bottom */}
         <div className="flex-shrink-0">
-          <div onClick={() => selectRaiaHelpAgent()} className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
+          <div onClick={() => selectRaiaHelpAgent()} className="flex items-center gap-3 py-[10px] pl-3 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer">
             <div className="text-white border-2 rounded-full w-7 h-7 border-custom-bother-gray flex justify-center items-center">
               <i className="fas fa-star icon-sm shrink-0"></i>
             </div>
@@ -851,8 +864,10 @@ const Home = ({ setIsAuthenticated }) => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer"
-            onClick={() => handleSignout()} 
+          <div 
+            className="flex items-center gap-3 py-[10px] pl-2 hover:bg-custom-hover-gray3 w-auto rounded-xl cursor-pointer relative"
+            onClick={() => setUserMenu(!userMenu)}
+            onMouseLeave={() => setUserMenu(false)}  // Clear hovered thread
           >
             <div className="flex items-center justify-center w-8 h-8 bg-custom-red rounded-full text-white">
               <span className="text-sm">{loginUsername.charAt(0).toUpperCase()}</span>
@@ -860,6 +875,24 @@ const Home = ({ setIsAuthenticated }) => {
             <div>
               <h1 className="text-sm font-normal text-white">{loginUsername}</h1>
             </div>
+
+            {userMenu && <div className="absolute right-0 bottom-0 w-1/2 bg-main-background text-black rounded-lg shadow-lg z-10">
+              <div className="p-2 cursor-pointer" >
+                <div className="flex items-center justify-center text-white hover:bg-custom-hover-gray3 rounded-lg py-3">
+                  <span className="text-sm">{loginEmail}</span>
+                </div>
+                
+                <div className="border-t border-custom-hover-gray5 my-1"></div>  {/* Divider */}
+
+                <div 
+                  className="flex items-center justify-center text-white hover:bg-custom-hover-gray3 rounded-lg py-3"
+                  onClick={() => handleSignout()}
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                  <span className="text-sm">&nbsp;Sign out</span>
+                </div>
+              </div>
+            </div>}
           </div>
         </div>
       </div>
@@ -868,10 +901,14 @@ const Home = ({ setIsAuthenticated }) => {
       <div className="flex-1 flex flex-col bg-main-background md:px-3">
         
         {/* Top Header for Mobile */}
-        <div className="flex items-center justify-between border-b-2 border-sidebar-background md:border-0 p-3 text-white">
+        <div 
+          className="flex items-center justify-between border-b-2 border-sidebar-background md:border-0 p-3 text-white"
+          onMouseLeave={() => setIsDropdownOpen(false)}  // Clear hovered thread
+        >
           <i className="fas fa-bars cursor-pointer md:hidden" onClick={() => setIsSidebarOpen(true)} ></i>
 
-          <div className="relative flex-1 flex justify-center md:justify-start" >
+          <div className="relative flex-1 flex justify-center md:justify-start" 
+          >
             {selectedAgent && (
             <div className="flex items-center p-3 rounded-lg hover:bg-custom-hover-gray4 cursor-pointer" 
               onClick={() => {
@@ -887,23 +924,33 @@ const Home = ({ setIsAuthenticated }) => {
               </span>
             </div>
             )}
+   
             {isDropdownOpen && (
             <div className="absolute mt-14 2xl:w-[400px] md:w-[45vw] lg:w-[45vw] xl:w-[25vw] bg-threeoptions-background rounded-lg max-h-48 overflow-y-auto">
-              
-              {agents.map((agent) => (
-              <div
-                key={agent.apikey}
-                className="p-3 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
-                onClick={() => handleAgentChange(agent)}
-              >
-                <div className="text-sm font-medium">
-                  <p>{agent.name}</p>
-                  <p className="text-agent-version-text">{agent.description}</p>
-                </div>
-                {selectedAgent.apikey === agent.apikey && <i className="fas fa-check-circle text-white flex-shrink-0"></i>}
-              </div>
-              ))}
-
+              <input
+                type="text"
+                placeholder="Search agents..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-5 py-3 border-0 border-b border-main-background mb-2 bg-transparent focus:outline-none placeholder-agent-version-text"
+              />
+              {filteredAgents.length > 0 ? (
+                filteredAgents.map((agent) => (
+                  <div
+                    key={agent.apikey}
+                    className="p-3 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
+                    onClick={() => handleAgentChange(agent)}
+                  >
+                    <div className="text-sm font-medium">
+                      <p>{agent.name}</p>
+                      <p className="text-agent-version-text">{agent.description}</p>
+                    </div>
+                    {selectedAgent.apikey === agent.apikey && <i className="fas fa-check-circle text-white flex-shrink-0"></i>}
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-center">No agents found</div>
+              )}
             </div>
             )}
           </div>
@@ -1010,7 +1057,7 @@ const Home = ({ setIsAuthenticated }) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} >
+          <form onSubmit={handleNewMessageSubmit} >
             {/* Input Field and Submit Button in one row */}
             <div className="flex items-center py-2 relative">
               <input
