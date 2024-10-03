@@ -1,3 +1,7 @@
+.prose {
+    max-width: 100% !important;
+}
+
 .prose * {
  font-size: 1em !important;
 }

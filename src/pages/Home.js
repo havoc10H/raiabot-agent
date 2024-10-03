@@ -25,7 +25,7 @@ const Home = ({ setIsAuthenticated }) => {
   const siteUrl = config.siteUrl;
 
   const navigate = useNavigate();
-
+ 
   const handleSignout = async () => {
     Swal.fire({
       title: '<h2 class="text-lg text-white">Are you sure you want to sign out?</h2>',
@@ -35,8 +35,8 @@ const Home = ({ setIsAuthenticated }) => {
       confirmButtonText: 'Yes, sign out!',
       cancelButtonText: 'No, cancel',
       customClass: {
-        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', // Custom delete button
-        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-3 mb-4', 
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-3 mb-4',
         popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
     })
@@ -223,8 +223,8 @@ const Home = ({ setIsAuthenticated }) => {
       confirmButtonText: 'Yes, delete it!',
       cancelButtonText: 'No, cancel',
       customClass: {
-        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-6', // Custom delete button
-        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        confirmButton: 'bg-red-500 hover:bg-red-700 text-white text-sm px-3 mb-4', // Custom delete button
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-3 mb-4', // Custom cancel button
         popup: 'p-2', // Full width on mobile, smaller on larger screens
       },
     }) 
@@ -539,7 +539,7 @@ const Home = ({ setIsAuthenticated }) => {
 
   const writeComment = async(threadId, messageId, isThumbsUp) => {
     Swal.fire({
-      title: '<h2 class="text-lg text-white">Write comment...</h2>',
+      title: '<h2 class="text-lg text-white text-left">Write Comment</h2>',
       background: '#2B3544', // Dark background
       input: 'textarea', // Set the input type to textarea
       inputPlaceholder: 'Write your thoughts here...',
@@ -547,8 +547,8 @@ const Home = ({ setIsAuthenticated }) => {
       confirmButtonText: '&nbsp;Save&nbsp;',
       cancelButtonText: 'Cancel',
       customClass: {
-        confirmButton: 'bg-blue-500 hover:bg-blue-700 text-white text-sm px-6', // Custom delete button
-        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-6', // Custom cancel button
+        confirmButton: 'bg-blue-500 hover:bg-blue-700 text-white text-sm px-3 mb-4', // Custom delete button
+        cancelButton: 'bg-gray-500 hover:bg-gray-300 text-white text-sm px-3 mb-4', // Custom cancel button
         popup: 'p-2', 
       },
       didOpen: () => {
@@ -878,14 +878,14 @@ const Home = ({ setIsAuthenticated }) => {
 
             {userMenu && <div className="absolute right-0 bottom-0 w-1/2 bg-main-background text-black rounded-lg shadow-lg z-10">
               <div className="p-2 cursor-pointer" >
-                <div className="flex items-center justify-center text-white hover:bg-custom-hover-gray3 rounded-lg py-3">
+                <div className="flex items-center justify-start text-white hover:bg-custom-hover-gray3 rounded-lg py-3 pl-3">
                   <span className="text-sm">{loginEmail}</span>
                 </div>
                 
                 <div className="border-t border-custom-hover-gray5 my-1"></div>  {/* Divider */}
 
                 <div 
-                  className="flex items-center justify-center text-white hover:bg-custom-hover-gray3 rounded-lg py-3"
+                  className="flex items-center justify-start text-white hover:bg-custom-hover-gray3 rounded-lg py-3 pl-3"
                   onClick={() => handleSignout()}
                 >
                   <i className="fas fa-sign-out-alt"></i>
@@ -980,8 +980,8 @@ const Home = ({ setIsAuthenticated }) => {
             {/* Chat Messages Area */}
             <div className="flex-1 p-2 overflow-y-auto md:mt-4" ref={scrollRef}>
               {messages.map((msg, index) => (
-                <div key={index} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} max-w-[80%]`}>
+                <div key={index} className={`mb-3 pr-1 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex flex-col ${msg.role === 'user' ? 'items-end max-w-[90%] md:max-w-[70%]' : 'items-start'} `}>
                     <div className={`p-2 rounded-xl text-white prose
                       ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
                          <ReactMarkdown>
