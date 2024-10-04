@@ -497,7 +497,7 @@ const Home = ({ setIsAuthenticated }) => {
 
           const assistantMessageData = assistantMessage.data[0];
           const replyText = assistantMessageData.content[0].text.value; 
-          saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, encodeData(replyText), assistantMessageData.role);
+          saveMessage(currentThread.id, run.id, assistantMessageData.id, assistantMessageData.created_at, replyText, assistantMessageData.role);
 
           return {
             replyText: replyText,
