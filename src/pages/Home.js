@@ -537,6 +537,20 @@ const Home = ({ setIsAuthenticated }) => {
     }
   }
 
+  const showComment = async (comment) => {
+    const formattedComment = comment.replace(/\.\s+/g, '.\n');
+    Swal.fire({
+      title: '<h2 class="text-lg text-white text-left"></h2>',
+      background: '#2B3544', // Dark background
+      html: `<p class="text-white text-left text-md" style="white-space: pre-line;">${formattedComment}</p>`, // Display dynamic comment
+      confirmButtonText: 'Close',
+      customClass: {
+        confirmButton: 'bg-blue-500 hover:bg-blue-700 text-white text-sm px-5 mb-4', // Custom confirm button
+        popup: 'p-2', 
+      }
+    });
+  }
+
   const writeComment = async(threadId, messageId, isThumbsUp) => {
     Swal.fire({
       title: '<h2 class="text-lg text-white text-left">Write Comment</h2>',
@@ -938,7 +952,7 @@ const Home = ({ setIsAuthenticated }) => {
                 filteredAgents.map((agent) => (
                   <div
                     key={agent.apikey}
-                    className="p-3 m-2 rounded hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
+                    className="p-3 m-2 rounded-lg hover:bg-custom-hover-gray5 cursor-pointer flex justify-between items-center"
                     onClick={() => handleAgentChange(agent)}
                   >
                     <div className="text-sm font-medium">
@@ -955,7 +969,7 @@ const Home = ({ setIsAuthenticated }) => {
             )}
           </div>
 
-          <i className="fas fa-edit cursor-pointer md:hidden" onClick={handleStartNewChat} ></i>
+          <i className="far fa-comment-alt cursor-pointer md:hidden" onClick={handleStartNewChat} ></i>
         </div>
 
         {/* Initial view with app icon*/}
@@ -982,11 +996,10 @@ const Home = ({ setIsAuthenticated }) => {
               {messages.map((msg, index) => (
                 <div key={index} className={`mb-3 pr-1 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex flex-col ${msg.role === 'user' ? 'items-end max-w-[90%] md:max-w-[70%]' : 'items-start'} `}>
-                    <div className={`p-2 rounded-xl text-white prose
-                      ${msg.role === 'user' ? 'bg-custom-hover-gray3' : 'border border-suggestion-border'}`}>
-                         <ReactMarkdown>
-                            {msg.message}
-                        </ReactMarkdown>
+                    <div className={`p-2 rounded-xl text-white prose ${msg.role === 'user' ? 'bg-custom-hover-gray3 px-5' : ''}`}>
+                      <ReactMarkdown>
+                        {msg.message}
+                      </ReactMarkdown>
                     </div>
 
                     {/* Icons Row */}
@@ -995,14 +1008,12 @@ const Home = ({ setIsAuthenticated }) => {
                         {msg.comments ? (
                           msg.comments.isThumbsUp === "1" ? (
                             // Show thumbs up icon if user liked the comment
-                            <button className="p-2 rounded-full bg-transparent">
+                            <button className="p-2 rounded-full bg-transparent" onClick={() => showComment(msg.comments.comment)}>
                               <i className="fas fa-thumbs-up"></i>
-                              <span className="pl-1 text-xs">{msg.comments.comment}</span>
                             </button>
                           ) : (
-                            <button className="p-2 rounded-full bg-transparent">
+                            <button className="p-2 rounded-full bg-transparent" onClick={() => showComment(msg.comments.comment)}>
                               <i className="fas fa-thumbs-down"></i>
-                              <span className="pl-1 text-xs">{msg.comments.comment}</span>
                             </button>
                           )
                         ) : (
